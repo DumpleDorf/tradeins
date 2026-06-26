@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  TESLA_EMPLOYEE
+  PARTNER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  RESERVED
+  PENDING_APPROVAL
+  SOLD
+  REJECTED
+}
+
+enum ReservationStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String
+  name          String
+  role          UserRole
+  status        UserStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  partnerProfile   PartnerProfile?
+  listedVehicles   Vehicle[]       @relation("ListedBy")
+  reservations     Reservation[]
+  auditLogs        AuditLog[]
+  passwordResets   PasswordResetToken[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model PartnerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  companyName String
+  contactName String
+  contactPhone String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vehicle {
+  id              String        @id @default(cuid())
+  make            String
+  model           String
+  year            Int
+  mileage         Int
+  exteriorColor   String
+  interiorColor   String
+  vin             String        @unique
+  conditionGrade  Int
+  listPrice       Decimal       @db.Decimal(12, 2)
+  description     String        @db.Text
+  availableFrom   DateTime
+  status          VehicleStatus @default(AVAILABLE)
+  listedById      String
+  rejectionReason String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  listedBy     User            @relation("ListedBy", fields: [listedById], references: [id])
+  photos       VehiclePhoto[]
+  reservations Reservation[]
+
+  @@index([status])
+  @@index([make, model, year])
+  @@index([listPrice])
+  @@index([mileage])
+  @@index([conditionGrade])
+}
+
+model VehiclePhoto {
+  id        String   @id @default(cuid())
+  vehicleId String
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  vehicleId       String
+  partnerId       String
+  status          ReservationStatus @default(PENDING_APPROVAL)
+  rejectionReason String?           @db.Text
+  reservedAt      DateTime          @default(now())
+  reviewedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+  partner User    @relation(fields: [partnerId], references: [id])
+
+  @@index([vehicleId])
+  @@index([partnerId])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}

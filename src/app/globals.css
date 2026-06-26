@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 220 13% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 13% 11%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 220 9% 46%;
+  --border: 0 0% 90%;
+  --primary: 352 82% 49%;
+  --primary-foreground: 0 0% 100%;
+}
+
+.dark {
+  --background: 220 13% 11%;
+  --foreground: 0 0% 96%;
+  --card: 220 10% 14%;
+  --card-foreground: 0 0% 96%;
+  --muted: 220 10% 18%;
+  --muted-foreground: 0 0% 70%;
+  --border: 220 10% 22%;
+  --primary: 352 82% 49%;
+  --primary-foreground: 0 0% 100%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+@layer utilities {
+  .tesla-gradient {
+    background: linear-gradient(180deg, #171a20 0%, #000000 100%);
+  }
+}
