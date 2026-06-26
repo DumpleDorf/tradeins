@@ -6,28 +6,38 @@ import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { VehicleFormFields } from "@/components/vehicle-form-fields";
+import { VehicleImage } from "@/components/vehicle-image";
 import { Button } from "@/components/ui/button";
 import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
+import { formatApiError } from "@/lib/api-errors";
+
+type VehiclePhoto = {
+  id: string;
+  url: string;
+};
 
 type Vehicle = VehicleDetails & {
   id: string;
   status: string;
-  photos: { url: string }[];
+  photos: VehiclePhoto[];
   listedBy: { name: string };
 };
 
-const NON_DELETABLE_STATUSES = ["PENDING_APPROVAL", "SOLD"];
+const NON_EDITABLE_STATUSES = ["PENDING_APPROVAL", "SOLD"];
 
 export default function TeslaListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
   const [photoWarning, setPhotoWarning] = useState("");
-  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photosToRemove, setPhotosToRemove] = useState<string[]>([]);
 
   useEffect(() => {
     const warning = sessionStorage.getItem("listingPhotoWarning");
@@ -46,32 +56,40 @@ export default function TeslaListingDetailPage() {
       });
   }, [id]);
 
-  async function handlePhotoUpload(e: React.FormEvent<HTMLFormElement>) {
+  const canEdit = vehicle && !NON_EDITABLE_STATUSES.includes(vehicle.status);
+  const canDelete = canEdit;
+
+  function cancelEdit() {
+    setEditing(false);
+    setPhotosToRemove([]);
+    setError("");
+  }
+
+  async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setUploadingPhotos(true);
-    setPhotoWarning("");
+    setSaving(true);
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
+
     const res = await fetch(`/api/vehicles/${id}`, {
       method: "PATCH",
       body: formData,
     });
+    const data = await res.json();
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Failed to upload photos");
-      setUploadingPhotos(false);
+      setError(formatApiError(data, "Failed to update listing."));
+      setSaving(false);
       return;
     }
 
-    const updated = await fetch(`/api/vehicles/${id}`).then((r) => r.json());
-    setVehicle(updated);
-    setUploadingPhotos(false);
-    (e.target as HTMLFormElement).reset();
+    setVehicle(data);
+    setEditing(false);
+    setPhotosToRemove([]);
+    setSaving(false);
   }
-
-  const canDelete = vehicle && !NON_DELETABLE_STATUSES.includes(vehicle.status);
 
   async function handleRemove() {
     setRemoving(true);
@@ -89,6 +107,9 @@ export default function TeslaListingDetailPage() {
     router.push("/tesla/listings");
     router.refresh();
   }
+
+  const visiblePhotos =
+    vehicle?.photos.filter((photo) => !photosToRemove.includes(photo.id)) ?? [];
 
   if (loading) {
     return (
@@ -133,6 +154,11 @@ export default function TeslaListingDetailPage() {
               VIN: {vehicle.vin} · Listed by {vehicle.listedBy.name}
             </p>
           </div>
+          {canEdit && !editing && (
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              Edit listing
+            </Button>
+          )}
         </div>
 
         <Disclaimer variant="listing" />
@@ -143,81 +169,125 @@ export default function TeslaListingDetailPage() {
           </p>
         )}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <PhotoGallery photos={vehicle.photos} />
+        {error && (
+          <p className="mt-4 text-sm text-red-400">{error}</p>
+        )}
 
-          <div className="space-y-6">
-            <dl className="grid grid-cols-2 gap-4 text-sm">
-              {getVehicleDetailRows(vehicle).map(([label, value]) => (
-                <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="font-medium">{value}</dd>
+        {editing ? (
+          <form onSubmit={handleEditSubmit} className="mt-8 max-w-2xl space-y-6">
+            <VehicleFormFields defaultValues={vehicle} idPrefix="edit-" showPhotos />
+
+            <div className="space-y-3 rounded-sm border border-border bg-card p-4">
+              <h2 className="font-semibold">Current photos</h2>
+              {visiblePhotos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No photos on this listing.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {visiblePhotos.map((photo) => (
+                    <div key={photo.id} className="space-y-2">
+                      <div className="relative aspect-[16/10] overflow-hidden rounded-sm bg-muted">
+                        <VehicleImage
+                          src={photo.url}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="200px"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setPhotosToRemove((ids) => [...ids, photo.id])}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </dl>
-
-            <div>
-              <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
-              <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
-            </div>
-            <div className="rounded-sm border border-border bg-card p-4 space-y-4">
-              <h2 className="font-semibold">Photos</h2>
-              <form onSubmit={handlePhotoUpload} className="space-y-3">
-                <input
-                  name="photos"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  required
-                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-sm file:border-0 file:bg-tesla-red file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
-                />
-                <Button type="submit" variant="outline" disabled={uploadingPhotos}>
-                  {uploadingPhotos ? "Uploading..." : "Upload photos"}
-                </Button>
-              </form>
-            </div>
-
-            <div className="rounded-sm border border-border bg-card p-4 space-y-4">
-              <h2 className="font-semibold">Manage listing</h2>
-
-              {!canDelete && (
+              )}
+              {photosToRemove.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  This listing cannot be removed while it is{" "}
-                  {vehicle.status.replace(/_/g, " ").toLowerCase()}.{" "}
-                  {vehicle.status === "PENDING_APPROVAL" && (
-                    <Link href="/tesla/reservations" className="text-tesla-red hover:underline">
-                      Review the reservation first
-                    </Link>
-                  )}
+                  {photosToRemove.length} photo(s) will be removed when you save.
                 </p>
               )}
+            </div>
 
-              {canDelete && !showConfirm && (
-                <Button variant="destructive" onClick={() => setShowConfirm(true)}>
-                  Remove listing
-                </Button>
-              )}
+            <div className="flex gap-3">
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save changes"}
+              </Button>
+              <Button type="button" variant="outline" onClick={cancelEdit} disabled={saving}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        ) : (
+          <div className="mt-8 grid gap-8 lg:grid-cols-2">
+            <PhotoGallery photos={vehicle.photos} />
 
-              {canDelete && showConfirm && (
-                <div className="space-y-3">
-                  <p className="text-sm">
-                    Remove this listing permanently? It will be deleted from partner inventory
-                    and cannot be undone.
+            <div className="space-y-6">
+              <dl className="grid grid-cols-2 gap-4 text-sm">
+                {getVehicleDetailRows(vehicle).map(([label, value]) => (
+                  <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="font-medium">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div>
+                <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
+                <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
+              </div>
+
+              <div className="rounded-sm border border-border bg-card p-4 space-y-4">
+                <h2 className="font-semibold">Manage listing</h2>
+
+                {!canDelete && (
+                  <p className="text-sm text-muted-foreground">
+                    This listing cannot be edited or removed while it is{" "}
+                    {vehicle.status.replace(/_/g, " ").toLowerCase()}.{" "}
+                    {vehicle.status === "PENDING_APPROVAL" && (
+                      <Link href="/tesla/reservations" className="text-tesla-red hover:underline">
+                        Review the reservation first
+                      </Link>
+                    )}
                   </p>
-                  {error && <p className="text-sm text-red-400">{error}</p>}
-                  <div className="flex gap-3">
-                    <Button variant="destructive" onClick={handleRemove} disabled={removing}>
-                      {removing ? "Removing..." : "Confirm remove"}
+                )}
+
+                {canDelete && !showConfirm && (
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" onClick={() => setEditing(true)}>
+                      Edit listing
                     </Button>
-                    <Button variant="outline" onClick={() => setShowConfirm(false)}>
-                      Cancel
+                    <Button variant="destructive" onClick={() => setShowConfirm(true)}>
+                      Remove listing
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+
+                {canDelete && showConfirm && (
+                  <div className="space-y-3">
+                    <p className="text-sm">
+                      Remove this listing permanently? It will be deleted from partner inventory
+                      and cannot be undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <Button variant="destructive" onClick={handleRemove} disabled={removing}>
+                        {removing ? "Removing..." : "Confirm remove"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

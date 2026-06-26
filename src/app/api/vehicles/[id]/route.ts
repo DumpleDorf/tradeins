@@ -8,6 +8,16 @@ import { uploadVehiclePhoto } from "@/lib/storage";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+async function getVehicleResponse(id: string) {
+  return prisma.vehicle.findUnique({
+    where: { id },
+    include: {
+      photos: { orderBy: { sortOrder: "asc" } },
+      listedBy: { select: { name: true } },
+    },
+  });
+}
+
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const session = await auth();
@@ -15,22 +25,13 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id },
-    include: {
-      photos: { orderBy: { sortOrder: "asc" } },
-      listedBy: { select: { name: true } },
-    },
-  });
+  const vehicle = await getVehicleResponse(id);
 
   if (!vehicle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (
-    session.user.role === "PARTNER" &&
-    vehicle.status !== "AVAILABLE"
-  ) {
+  if (session.user.role === "PARTNER" && vehicle.status !== "AVAILABLE") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -63,13 +64,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       data = Object.fromEntries(
-        [...formData.entries()].filter(([key]) => key !== "photos")
+        [...formData.entries()].filter(
+          ([key]) => key !== "photos" && key !== "removePhotoIds"
+        )
       );
+
+      const removePhotoIds = formData.getAll("removePhotoIds").map(String).filter(Boolean);
+      if (removePhotoIds.length > 0) {
+        await prisma.vehiclePhoto.deleteMany({
+          where: {
+            id: { in: removePhotoIds },
+            vehicleId: id,
+          },
+        });
+      }
 
       const photoFiles = formData.getAll("photos") as File[];
       const existingPhotos = await prisma.vehiclePhoto.count({
         where: { vehicleId: id },
       });
+
+      let uploaded = 0;
 
       for (let i = 0; i < photoFiles.length; i++) {
         const file = photoFiles[i];
@@ -80,25 +95,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
               data: {
                 vehicleId: id,
                 url,
-                sortOrder: existingPhotos + i,
+                sortOrder: existingPhotos + uploaded,
               },
             });
+            uploaded += 1;
           } catch (uploadError) {
             console.error("Photo upload failed:", uploadError);
-            return NextResponse.json(
-              {
-                error:
-                  uploadError instanceof Error
-                    ? uploadError.message
-                    : "Failed to upload photos",
-              },
-              { status: 500 }
-            );
           }
         }
       }
     } else {
-      data = await request.json();
+      const body = await request.json();
+      data = body;
+      if (Array.isArray(body.removePhotoIds) && body.removePhotoIds.length > 0) {
+        await prisma.vehiclePhoto.deleteMany({
+          where: {
+            id: { in: body.removePhotoIds },
+            vehicleId: id,
+          },
+        });
+        delete data.removePhotoIds;
+      }
     }
 
     const parsed = vehicleSchema.partial().safeParse(data);
@@ -106,14 +123,21 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    const updateData = {
-      ...parsed.data,
-    };
+    if (parsed.data.vin && parsed.data.vin !== existing.vin) {
+      const vinTaken = await prisma.vehicle.findUnique({
+        where: { vin: parsed.data.vin },
+      });
+      if (vinTaken) {
+        return NextResponse.json({ error: "VIN already in use" }, { status: 409 });
+      }
+    }
 
-    const vehicle = await prisma.vehicle.update({
-      where: { id },
-      data: updateData,
-    });
+    if (Object.keys(parsed.data).length > 0) {
+      await prisma.vehicle.update({
+        where: { id },
+        data: parsed.data,
+      });
+    }
 
     await createAuditLog({
       actorId: session.user.id,
@@ -122,6 +146,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       entityId: id,
     });
 
+    const vehicle = await getVehicleResponse(id);
     return NextResponse.json(vehicle);
   } catch {
     return NextResponse.json({ error: "Failed to update vehicle" }, { status: 500 });
