@@ -4,10 +4,6 @@ import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { canApproveReservations } from "@/lib/rbac";
 import { rejectSchema } from "@/lib/validations";
-import {
-  sendApprovalNotification,
-  sendRejectionNotification,
-} from "@/lib/email";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -34,8 +30,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
   }
 
-  const vehicleLabel = `${reservation.vehicle.year} ${reservation.vehicle.make} ${reservation.vehicle.model}`;
-
   if (action === "approve") {
     const updated = await prisma.$transaction(async (tx) => {
       const res = await tx.reservation.update({
@@ -56,13 +50,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       action: "RESERVATION_APPROVED",
       entityType: "Reservation",
       entityId: id,
-    });
-
-    await sendApprovalNotification({
-      to: reservation.partner.email,
-      partnerName: reservation.partner.partnerProfile?.contactName ?? reservation.partner.name,
-      vehicleLabel,
-      vin: reservation.vehicle.vin,
     });
 
     return NextResponse.json(updated);
@@ -101,14 +88,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
       entityType: "Reservation",
       entityId: id,
       metadata: { reason: parsed.data.reason },
-    });
-
-    await sendRejectionNotification({
-      to: reservation.partner.email,
-      partnerName: reservation.partner.partnerProfile?.contactName ?? reservation.partner.name,
-      vehicleLabel,
-      vin: reservation.vehicle.vin,
-      reason: parsed.data.reason,
     });
 
     return NextResponse.json(updated);

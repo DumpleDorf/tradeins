@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { canReserveVehicles } from "@/lib/rbac";
-import { sendReservationNotification } from "@/lib/email";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -62,15 +61,6 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         vehicleId,
         vin: result.vehicle.vin,
       },
-    });
-
-    await sendReservationNotification({
-      vehicleVin: result.vehicle.vin,
-      vehicleDetails: `${result.vehicle.year} ${result.vehicle.make} ${result.vehicle.model} — Grade ${result.vehicle.conditionGrade}`,
-      partnerCompany: partner.partnerProfile.companyName,
-      contactName: partner.partnerProfile.contactName,
-      contactEmail: partner.email,
-      reservedAt: result.reservation.reservedAt,
     });
 
     return NextResponse.json(result.reservation, { status: 201 });

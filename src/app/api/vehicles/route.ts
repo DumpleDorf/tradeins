@@ -6,8 +6,6 @@ import { createAuditLog } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhoto } from "@/lib/storage";
-import { sendNewListingNotification } from "@/lib/email";
-import { formatPrice } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -106,25 +104,6 @@ export async function POST(request: NextRequest) {
       entityId: vehicle.id,
       metadata: { vin: vehicle.vin },
     });
-
-    const notifySetting = await prisma.systemSetting.findUnique({
-      where: { key: "notify_partners_on_new_listing" },
-    });
-
-    if (notifySetting?.value === "true") {
-      const partners = await prisma.user.findMany({
-        where: { role: "PARTNER", status: "ACTIVE" },
-        select: { email: true },
-      });
-
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://teslatradeins.com.au";
-      await sendNewListingNotification({
-        to: partners.map((p) => p.email),
-        vehicleLabel: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-        listPrice: formatPrice(Number(vehicle.listPrice)),
-        vehicleUrl: `${appUrl}/vehicles/${vehicle.id}`,
-      });
-    }
 
     return NextResponse.json(
       {

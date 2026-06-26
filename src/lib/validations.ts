@@ -25,6 +25,17 @@ export const partnerInviteSchema = z.object({
   companyName: z.string().min(1),
   contactName: z.string().min(1),
   contactPhone: z.string().optional(),
+  password: z.string().min(8),
+});
+
+export const partnerUpdateSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().min(1).optional(),
+  companyName: z.string().min(1).optional(),
+  contactName: z.string().min(1).optional(),
+  contactPhone: z.string().optional(),
+  password: z.string().min(8).optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });
 
 export const teslaUserSchema = z.object({

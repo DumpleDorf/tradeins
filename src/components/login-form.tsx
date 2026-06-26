@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,12 +86,6 @@ export function LoginForm({ loginType, title, subtitle }: LoginFormProps) {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </Button>
-
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="hover:text-tesla-red">
-            Forgot password?
-          </Link>
-        </p>
       </form>
     </div>
   );

@@ -5,8 +5,7 @@ import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { canManagePartners } from "@/lib/rbac";
 import { partnerInviteSchema } from "@/lib/validations";
-import { hashPassword, generateToken } from "@/lib/password";
-import { sendPartnerInviteEmail } from "@/lib/email";
+import { hashPassword } from "@/lib/password";
 
 export async function GET() {
   const session = await auth();
@@ -44,8 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
 
-    const tempPassword = generateToken().slice(0, 12);
-    const passwordHash = await hashPassword(tempPassword);
+    const passwordHash = await hashPassword(parsed.data.password);
 
     const partner = await prisma.user.create({
       data: {
@@ -72,15 +70,8 @@ export async function POST(request: NextRequest) {
       entityId: partner.id,
     });
 
-    await sendPartnerInviteEmail({
-      to: partner.email,
-      name: partner.name,
-      companyName: parsed.data.companyName,
-      temporaryPassword: tempPassword,
-    });
-
     return NextResponse.json(partner, { status: 201 });
   } catch {
-    return NextResponse.json({ error: "Failed to invite partner" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create partner" }, { status: 500 });
   }
 }
