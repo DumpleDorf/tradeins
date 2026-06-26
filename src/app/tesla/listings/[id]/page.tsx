@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
 
 type Vehicle = VehicleDetails & {
+  id: string;
+  status: string;
   photos: { url: string }[];
   listedBy: { name: string };
 };
