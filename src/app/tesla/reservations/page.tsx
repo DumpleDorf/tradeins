@@ -26,10 +26,20 @@ type Reservation = {
   };
 };
 
+function matchesCompanySearch(reservation: Reservation, query: string) {
+  const company = reservation.partner.partnerProfile?.companyName ?? "";
+  return company.toLowerCase().includes(query.trim().toLowerCase());
+}
+
 export default function TeslaReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [companySearch, setCompanySearch] = useState("");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+
+  const filteredReservations = companySearch.trim()
+    ? reservations.filter((r) => matchesCompanySearch(r, companySearch))
+    : reservations;
 
   function load() {
     fetch("/api/reservations").then((r) => r.json()).then(setReservations);
@@ -63,8 +73,30 @@ export default function TeslaReservationsPage() {
         </Link>
         <h1 className="mt-4 text-3xl font-semibold">Reservations</h1>
 
+        <div className="mt-6 max-w-md">
+          <Input
+            type="search"
+            placeholder="Search by company name..."
+            value={companySearch}
+            onChange={(e) => setCompanySearch(e.target.value)}
+            aria-label="Filter reservations by company name"
+          />
+          {companySearch.trim() && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Showing {filteredReservations.length} of {reservations.length} reservations
+            </p>
+          )}
+        </div>
+
         <div className="mt-8 space-y-4">
-          {reservations.map((r) => (
+          {filteredReservations.length === 0 ? (
+            <p className="text-muted-foreground">
+              {companySearch.trim()
+                ? "No reservations match that company."
+                : "No reservations yet."}
+            </p>
+          ) : (
+            filteredReservations.map((r) => (
             <div key={r.id} className="rounded-sm border border-border bg-card p-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -126,7 +158,8 @@ export default function TeslaReservationsPage() {
                 </div>
               )}
             </div>
-          ))}
+            ))
+          )}
         </div>
       </main>
     </div>
