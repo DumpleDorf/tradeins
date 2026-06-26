@@ -1,6 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/password";
 
+if (!process.env.POSTGRES_PRISMA_URL && !process.env.DATABASE_URL) {
+  console.error(
+    "Missing POSTGRES_PRISMA_URL. Set it in your shell before running db:seed."
+  );
+  process.exit(1);
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
