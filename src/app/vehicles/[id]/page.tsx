@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
@@ -10,6 +11,7 @@ import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
 
 type Vehicle = VehicleDetails & {
   id: string;
+  status: string;
   photos: { url: string }[];
 };
 
@@ -95,6 +97,8 @@ export default function VehicleDetailPage() {
               <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
             </div>
 
+            {vehicle.status === "AVAILABLE" && (
+              <>
             {!showConfirm ? (
               <Button size="lg" className="w-full sm:w-auto" onClick={() => setShowConfirm(true)}>
                 Reserve This Vehicle
@@ -116,6 +120,17 @@ export default function VehicleDetailPage() {
                   </Button>
                 </div>
               </div>
+            )}
+              </>
+            )}
+
+            {vehicle.status !== "AVAILABLE" && (
+              <p className="text-sm text-muted-foreground">
+                This vehicle is no longer available to reserve.{" "}
+                <Link href="/reservations" className="text-tesla-red hover:underline">
+                  View your reservations
+                </Link>
+              </p>
             )}
           </div>
         </div>

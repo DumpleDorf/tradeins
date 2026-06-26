@@ -12,14 +12,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const params = Object.fromEntries(new URL(request.url).searchParams);
-  const filters = inventoryFiltersSchema.parse(params);
+  const rawParams = Object.fromEntries(new URL(request.url).searchParams);
+  const params = Object.fromEntries(
+    Object.entries(rawParams).filter(([, value]) => value !== "")
+  );
+  const parsed = inventoryFiltersSchema.safeParse(params);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
+  }
+  const filters = parsed.data;
 
   const where: Prisma.VehicleWhereInput = {
     status: VehicleStatus.AVAILABLE,
   };
 
-  if (filters.make) where.make = { equals: filters.make, mode: "insensitive" };
+  if (filters.make) where.make = { contains: filters.make, mode: "insensitive" };
   if (filters.model) where.model = { contains: filters.model, mode: "insensitive" };
   if (filters.yearMin || filters.yearMax) {
     where.year = {};

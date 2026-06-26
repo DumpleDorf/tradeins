@@ -11,7 +11,14 @@ type Reservation = {
   id: string;
   status: string;
   reservedAt: string;
-  vehicle: { year: number; make: string; model: string; vin: string };
+  vehicle: {
+    id: string;
+    year: number;
+    make: string;
+    model: string;
+    vin: string;
+    licensePlateNumber: string;
+  };
   partner: {
     name: string;
     email: string;
@@ -67,7 +74,9 @@ export default function TeslaReservationsPage() {
                     </h3>
                     <StatusBadge status={r.status} />
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">VIN: {r.vehicle.vin}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    VIN: {r.vehicle.vin} · Plate {r.vehicle.licensePlateNumber}
+                  </p>
                   <p className="mt-2 text-sm">
                     {r.partner.partnerProfile?.companyName} — {r.partner.partnerProfile?.contactName} (
                     {r.partner.email})
@@ -77,20 +86,27 @@ export default function TeslaReservationsPage() {
                   </p>
                 </div>
 
-                {r.status === "PENDING_APPROVAL" && (
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => handleAction(r.id, "approve")}>
-                      Approve
+                <div className="flex flex-wrap gap-2">
+                  <Link href={`/tesla/listings/${r.vehicle.id}`}>
+                    <Button size="sm" variant="outline">
+                      View listing
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => setRejectingId(r.id)}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                )}
+                  </Link>
+                  {r.status === "PENDING_APPROVAL" && (
+                    <>
+                      <Button size="sm" onClick={() => handleAction(r.id, "approve")}>
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setRejectingId(r.id)}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
               {rejectingId === r.id && (

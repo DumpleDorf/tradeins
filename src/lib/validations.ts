@@ -52,13 +52,21 @@ export const rejectSchema = z.object({
   reason: z.string().min(1).max(1000),
 });
 
+const optionalNumber = z.preprocess(
+  (value) => (value === "" || value === undefined || value === null ? undefined : value),
+  z.coerce.number().optional()
+);
+
 export const inventoryFiltersSchema = z.object({
   make: z.string().optional(),
   model: z.string().optional(),
-  yearMin: z.coerce.number().optional(),
-  yearMax: z.coerce.number().optional(),
-  odometerMin: z.coerce.number().optional(),
-  odometerMax: z.coerce.number().optional(),
+  yearMin: optionalNumber,
+  yearMax: optionalNumber,
+  odometerMin: optionalNumber,
+  odometerMax: optionalNumber,
   sort: z.enum(["newest", "odometer_asc", "odometer_desc"]).optional(),
-  page: z.coerce.number().int().min(1).optional(),
+  page: z.preprocess(
+    (value) => (value === "" || value === undefined || value === null ? undefined : value),
+    z.coerce.number().int().min(1).optional()
+  ),
 });

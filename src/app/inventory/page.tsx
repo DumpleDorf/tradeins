@@ -20,25 +20,28 @@ type Vehicle = {
   photos: { url: string }[];
 };
 
+const emptyFilters = {
+  make: "",
+  model: "",
+  yearMin: "",
+  yearMax: "",
+  odometerMin: "",
+  odometerMax: "",
+  sort: "newest",
+};
+
 export default function InventoryPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    make: "",
-    model: "",
-    yearMin: "",
-    yearMax: "",
-    odometerMin: "",
-    odometerMax: "",
-    sort: "newest",
-  });
+  const [draftFilters, setDraftFilters] = useState(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), sort: filters.sort });
-    Object.entries(filters).forEach(([key, value]) => {
+    const params = new URLSearchParams({ page: String(page), sort: appliedFilters.sort });
+    Object.entries(appliedFilters).forEach(([key, value]) => {
       if (value && key !== "sort") params.set(key, value);
     });
 
@@ -47,11 +50,22 @@ export default function InventoryPage() {
     setVehicles(data.vehicles ?? []);
     setTotalPages(data.pagination?.totalPages ?? 1);
     setLoading(false);
-  }, [page, filters]);
+  }, [page, appliedFilters]);
 
   useEffect(() => {
     fetchInventory();
   }, [fetchInventory]);
+
+  function applyFilters() {
+    setPage(1);
+    setAppliedFilters(draftFilters);
+  }
+
+  function clearFilters() {
+    setDraftFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(1);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,9 +97,9 @@ export default function InventoryPage() {
               <div key={key} className="space-y-1">
                 <Label>{label}</Label>
                 <Input
-                  value={filters[key as keyof typeof filters]}
+                  value={draftFilters[key as keyof typeof draftFilters]}
                   onChange={(e) =>
-                    setFilters((f) => ({ ...f, [key]: e.target.value }))
+                    setDraftFilters((f) => ({ ...f, [key]: e.target.value }))
                   }
                 />
               </div>
@@ -94,23 +108,22 @@ export default function InventoryPage() {
               <Label>Sort by</Label>
               <select
                 className="flex h-10 w-full rounded-sm border border-border bg-card px-3 text-sm"
-                value={filters.sort}
-                onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}
+                value={draftFilters.sort}
+                onChange={(e) => setDraftFilters((f) => ({ ...f, sort: e.target.value }))}
               >
                 <option value="newest">Newest</option>
                 <option value="odometer_asc">Odometer: Low to High</option>
                 <option value="odometer_desc">Odometer: High to Low</option>
               </select>
             </div>
-            <Button
-              className="w-full"
-              onClick={() => {
-                setPage(1);
-                fetchInventory();
-              }}
-            >
-              Apply Filters
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={applyFilters}>
+                Apply Filters
+              </Button>
+              <Button className="flex-1" variant="outline" onClick={clearFilters}>
+                Clear
+              </Button>
+            </div>
           </aside>
 
           <div className="lg:col-span-3">
