@@ -72,6 +72,7 @@ async function main() {
         model: "Impreza",
         trim: "G5 MY21 2.0i Premium Hatchback. 5dr CVT 7sp AWD",
         odometer: 32000,
+        price: 24900,
         numberOfKeys: 2,
         vehicleDamage: "No",
         serviceHistory: "Partial Service History",
