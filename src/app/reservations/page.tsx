@@ -75,10 +75,10 @@ export default function ReservationsPage() {
                   )}
                 </div>
                 <Link
-                  href={`/vehicles/${r.vehicle.id}`}
+                  href={`/reservations/${r.id}`}
                   className="text-sm text-tesla-red hover:underline"
                 >
-                  View vehicle
+                  View details
                 </Link>
               </div>
             ))

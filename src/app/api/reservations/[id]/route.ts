@@ -7,6 +7,44 @@ import { rejectSchema } from "@/lib/validations";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+export async function GET(_request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  const session = await auth();
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const reservation = await prisma.reservation.findUnique({
+    where: { id },
+    include: {
+      vehicle: {
+        include: {
+          photos: { orderBy: { sortOrder: "asc" } },
+        },
+      },
+    },
+  });
+
+  if (!reservation) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const isPartner = session.user.role === "PARTNER";
+  const isTesla =
+    session.user.role === "TESLA_EMPLOYEE" || session.user.role === "SUPER_ADMIN";
+
+  if (isPartner && reservation.partnerId !== session.user.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (!isPartner && !isTesla) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  return NextResponse.json(reservation);
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const session = await auth();

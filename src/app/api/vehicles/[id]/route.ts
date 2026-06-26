@@ -32,16 +32,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
 
   if (session.user.role === "PARTNER" && vehicle.status !== "AVAILABLE") {
-    const reservation = await prisma.reservation.findFirst({
-      where: {
-        vehicleId: id,
-        partnerId: session.user.id,
-      },
-    });
-
-    if (!reservation) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   return NextResponse.json(vehicle);
