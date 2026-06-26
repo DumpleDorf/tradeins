@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { vehicleSchema } from "@/lib/validations";
-import { uploadVehiclePhoto } from "@/lib/storage";
+import { uploadVehiclePhotos } from "@/lib/storage";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -60,6 +60,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const contentType = request.headers.get("content-type") ?? "";
     let data: Record<string, unknown> = {};
+    let photoWarnings: string[] = [];
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
@@ -84,26 +85,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         where: { vehicleId: id },
       });
 
-      let uploaded = 0;
-
-      for (let i = 0; i < photoFiles.length; i++) {
-        const file = photoFiles[i];
-        if (file && file.size > 0) {
-          try {
-            const url = await uploadVehiclePhoto(file, id);
-            await prisma.vehiclePhoto.create({
-              data: {
-                vehicleId: id,
-                url,
-                sortOrder: existingPhotos + uploaded,
-              },
-            });
-            uploaded += 1;
-          } catch (uploadError) {
-            console.error("Photo upload failed:", uploadError);
-          }
+      photoWarnings = await uploadVehiclePhotos(
+        photoFiles,
+        id,
+        existingPhotos,
+        async (url, sortOrder) => {
+          await prisma.vehiclePhoto.create({
+            data: { vehicleId: id, url, sortOrder },
+          });
         }
-      }
+      );
     } else {
       const body = await request.json();
       data = body;
@@ -147,7 +138,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     });
 
     const vehicle = await getVehicleResponse(id);
-    return NextResponse.json(vehicle);
+    return NextResponse.json({
+      ...vehicle,
+      photoWarnings: photoWarnings.length > 0 ? photoWarnings : undefined,
+    });
   } catch {
     return NextResponse.json({ error: "Failed to update vehicle" }, { status: 500 });
   }

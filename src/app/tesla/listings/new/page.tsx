@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Disclaimer } from "@/components/disclaimer";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { formatApiError } from "@/lib/api-errors";
+import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -20,6 +21,14 @@ export default function NewListingPage() {
     setError("");
 
     const formData = new FormData(e.currentTarget);
+    const photoFiles = formData.getAll("photos") as File[];
+    const photoErrors = validateVehiclePhotoFiles(photoFiles);
+    if (photoErrors.length > 0) {
+      setError(photoErrors.join(" "));
+      setLoading(false);
+      return;
+    }
+
     const res = await fetch("/api/vehicles", { method: "POST", body: formData });
     const data = await res.json();
 

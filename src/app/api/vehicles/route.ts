@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { vehicleSchema } from "@/lib/validations";
-import { uploadVehiclePhoto } from "@/lib/storage";
+import { uploadVehiclePhotos } from "@/lib/storage";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -77,24 +77,16 @@ export async function POST(request: NextRequest) {
     });
 
     const photoFiles = formData.getAll("photos") as File[];
-    const photoWarnings: string[] = [];
-
-    for (let i = 0; i < photoFiles.length; i++) {
-      const file = photoFiles[i];
-      if (file && file.size > 0) {
-        try {
-          const url = await uploadVehiclePhoto(file, vehicle.id);
-          await prisma.vehiclePhoto.create({
-            data: { vehicleId: vehicle.id, url, sortOrder: i },
-          });
-        } catch (uploadError) {
-          const message =
-            uploadError instanceof Error ? uploadError.message : "Photo upload failed";
-          photoWarnings.push(message);
-          console.error("Photo upload failed:", uploadError);
-        }
+    const photoWarnings = await uploadVehiclePhotos(
+      photoFiles,
+      vehicle.id,
+      0,
+      async (url, sortOrder) => {
+        await prisma.vehiclePhoto.create({
+          data: { vehicleId: vehicle.id, url, sortOrder },
+        });
       }
-    }
+    );
 
     await createAuditLog({
       actorId: session.user.id,

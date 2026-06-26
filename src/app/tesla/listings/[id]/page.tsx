@@ -11,6 +11,7 @@ import { VehicleImage } from "@/components/vehicle-image";
 import { Button } from "@/components/ui/button";
 import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
 import { formatApiError } from "@/lib/api-errors";
+import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 
 type VehiclePhoto = {
   id: string;
@@ -73,6 +74,14 @@ export default function TeslaListingDetailPage() {
     const formData = new FormData(e.currentTarget);
     photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
 
+    const photoFiles = formData.getAll("photos") as File[];
+    const photoErrors = validateVehiclePhotoFiles(photoFiles);
+    if (photoErrors.length > 0) {
+      setError(photoErrors.join(" "));
+      setSaving(false);
+      return;
+    }
+
     const res = await fetch(`/api/vehicles/${id}`, {
       method: "PATCH",
       body: formData,
@@ -89,6 +98,10 @@ export default function TeslaListingDetailPage() {
     setEditing(false);
     setPhotosToRemove([]);
     setSaving(false);
+
+    if (data.photoWarnings?.length) {
+      setPhotoWarning(data.photoWarnings.join(" "));
+    }
   }
 
   async function handleRemove() {

@@ -1,7 +1,22 @@
+import {
+  formatPhotoUploadError,
+  MAX_VEHICLE_PHOTO_BYTES,
+  validateVehiclePhotoFile,
+} from "@/lib/vehicle-photos";
+
 const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "vehicle-photos";
+
+const BUCKET_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+];
 
 function supabaseHeaders(contentType?: string): Record<string, string> {
   const headers: Record<string, string> = {
@@ -14,6 +29,20 @@ function supabaseHeaders(contentType?: string): Record<string, string> {
   return headers;
 }
 
+async function syncVehiclePhotoBucket(): Promise<void> {
+  await fetch(`${supabaseUrl}/storage/v1/bucket/${bucket}`, {
+    method: "PUT",
+    headers: {
+      ...supabaseHeaders("application/json"),
+    },
+    body: JSON.stringify({
+      public: true,
+      file_size_limit: MAX_VEHICLE_PHOTO_BYTES,
+      allowed_mime_types: BUCKET_MIME_TYPES,
+    }),
+  });
+}
+
 export async function ensureVehiclePhotoBucket(): Promise<void> {
   if (!supabaseUrl || !supabaseKey) {
     return;
@@ -24,6 +53,7 @@ export async function ensureVehiclePhotoBucket(): Promise<void> {
   });
 
   if (checkRes.ok) {
+    await syncVehiclePhotoBucket();
     return;
   }
 
@@ -35,8 +65,8 @@ export async function ensureVehiclePhotoBucket(): Promise<void> {
     body: JSON.stringify({
       name: bucket,
       public: true,
-      file_size_limit: 10485760,
-      allowed_mime_types: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+      file_size_limit: MAX_VEHICLE_PHOTO_BYTES,
+      allowed_mime_types: BUCKET_MIME_TYPES,
     }),
   });
 
@@ -50,23 +80,29 @@ export async function uploadVehiclePhoto(
   file: File,
   vehicleId: string
 ): Promise<string> {
+  const validationError = validateVehiclePhotoFile(file);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
   if (!supabaseUrl || !supabaseKey) {
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString("base64");
-    return `data:${file.type};base64,${base64}`;
+    return `data:${file.type || "image/jpeg"};base64,${base64}`;
   }
 
   await ensureVehiclePhotoBucket();
 
   const ext = file.name.split(".").pop() ?? "jpg";
   const path = `${vehicleId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const contentType = file.type || "image/jpeg";
 
   const uploadRes = await fetch(
     `${supabaseUrl}/storage/v1/object/${bucket}/${path}`,
     {
       method: "POST",
       headers: {
-        ...supabaseHeaders(file.type),
+        ...supabaseHeaders(contentType),
         "x-upsert": "true",
       },
       body: file,
@@ -75,8 +111,37 @@ export async function uploadVehiclePhoto(
 
   if (!uploadRes.ok) {
     const body = await uploadRes.text();
-    throw new Error(`Failed to upload image: ${body}`);
+    throw new Error(formatPhotoUploadError(file.name, body));
   }
 
   return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+export async function uploadVehiclePhotos(
+  files: File[],
+  vehicleId: string,
+  startSortOrder: number,
+  savePhoto: (url: string, sortOrder: number) => Promise<void>
+): Promise<string[]> {
+  const warnings: string[] = [];
+  let uploaded = 0;
+
+  for (const file of files) {
+    if (!file || file.size === 0) {
+      continue;
+    }
+
+    try {
+      const url = await uploadVehiclePhoto(file, vehicleId);
+      await savePhoto(url, startSortOrder + uploaded);
+      uploaded += 1;
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error ? uploadError.message : `${file.name}: upload failed`;
+      warnings.push(message);
+      console.error("Photo upload failed:", uploadError);
+    }
+  }
+
+  return warnings;
 }

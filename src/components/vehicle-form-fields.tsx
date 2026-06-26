@@ -5,6 +5,11 @@ import {
   VEHICLE_DAMAGE_OPTIONS,
   type VehicleDetails,
 } from "@/lib/vehicle";
+import {
+  formatPhotoSize,
+  MAX_VEHICLE_PHOTO_BYTES,
+  VEHICLE_PHOTO_ACCEPT,
+} from "@/lib/vehicle-photos";
 
 export const vehicleSelectClassName =
   "flex h-10 w-full rounded-sm border border-border bg-card px-3 text-sm";
@@ -143,10 +148,14 @@ export function VehicleFormFields({
             id={fieldId("photos")}
             name="photos"
             type="file"
-            accept="image/*"
+            accept={VEHICLE_PHOTO_ACCEPT}
             multiple
             required={photosRequired}
           />
+          <p className="text-xs text-muted-foreground">
+            JPEG, PNG, WebP, or GIF. Max {formatPhotoSize(MAX_VEHICLE_PHOTO_BYTES)} per image.
+            If an upload fails, resize or compress large photos and try again.
+          </p>
         </div>
       )}
     </div>
