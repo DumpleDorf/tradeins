@@ -75,6 +75,7 @@ model Vehicle {
   model              String
   trim               String        @db.Text
   odometer           Int
+  price              Int
   numberOfKeys       Int
   vehicleDamage      String
   serviceHistory     String
@@ -92,6 +93,7 @@ model Vehicle {
   @@index([status])
   @@index([make, model, year])
   @@index([odometer])
+  @@index([price])
 }
 
 model VehiclePhoto {

@@ -16,6 +16,7 @@ type Vehicle = {
   model: string;
   trim: string;
   odometer: number;
+  price: number;
   licensePlateNumber: string;
   photos: { url: string }[];
 };

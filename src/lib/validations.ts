@@ -13,6 +13,7 @@ export const vehicleSchema = z.object({
   model: z.string().min(1),
   trim: z.string().min(1),
   odometer: z.coerce.number().int().min(0),
+  price: z.coerce.number().int().min(1),
   numberOfKeys: z.coerce.number().int().min(0).max(10),
   vehicleDamage: z.enum(["Yes", "No"]),
   serviceHistory: z.enum([

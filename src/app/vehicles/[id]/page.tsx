@@ -6,7 +6,7 @@ import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { Button } from "@/components/ui/button";
-import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
+import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
 
 type Vehicle = VehicleDetails & {
   id: string;
@@ -79,6 +79,9 @@ export default function VehicleDetailPage() {
               <h1 className="text-3xl font-semibold">
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h1>
+              {vehicle.price > 0 && (
+                <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
+              )}
             </div>
 
             <dl className="grid grid-cols-2 gap-4 text-sm">

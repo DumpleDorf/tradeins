@@ -52,7 +52,7 @@ ON CONFLICT ("userId") DO NOTHING;
 
 INSERT INTO "Vehicle" (
   "id", "vin", "licensePlateNumber", "year", "make", "model", "trim",
-  "odometer", "numberOfKeys", "vehicleDamage", "serviceHistory", "vehicleNotes",
+  "odometer", "price", "numberOfKeys", "vehicleDamage", "serviceHistory", "vehicleNotes",
   "status", "listedById", "createdAt", "updatedAt"
 )
 VALUES (
@@ -64,6 +64,7 @@ VALUES (
   'Impreza',
   'G5 MY21 2.0i Premium Hatchback. 5dr CVT 7sp AWD',
   32000,
+  24900,
   2,
   'No',
   'Partial Service History',

@@ -17,11 +17,21 @@ export type VehicleDetails = {
   model: string;
   trim: string;
   odometer: number;
+  price: number;
   numberOfKeys: number;
   vehicleDamage: string;
   serviceHistory: string;
   vehicleNotes: string;
 };
+
+export function formatVehiclePrice(price: number) {
+  if (price <= 0) return "—";
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  }).format(price);
+}
 
 export function getVehicleDetailRows(vehicle: VehicleDetails) {
   return [
@@ -31,6 +41,7 @@ export function getVehicleDetailRows(vehicle: VehicleDetails) {
     ["Make", vehicle.make],
     ["Model", vehicle.model],
     ["Trim", vehicle.trim],
+    ["Price", formatVehiclePrice(vehicle.price)],
     ["Odometer", `${new Intl.NumberFormat("en-AU").format(vehicle.odometer)} km`],
     ["Number of Keys", String(vehicle.numberOfKeys)],
     ["Vehicle Damage", vehicle.vehicleDamage],

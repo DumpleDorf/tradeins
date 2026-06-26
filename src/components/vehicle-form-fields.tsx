@@ -85,6 +85,19 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
+        <Label htmlFor={fieldId("price")}>Price (AUD)</Label>
+        <Input
+          id={fieldId("price")}
+          name="price"
+          type="number"
+          min={1}
+          step={1}
+          defaultValue={defaultValues?.price}
+          required
+        />
+        <p className="text-xs text-muted-foreground">Indicative wholesale price only.</p>
+      </div>
+      <div className="space-y-2">
         <Label htmlFor={fieldId("numberOfKeys")}>Number of Keys</Label>
         <Input
           id={fieldId("numberOfKeys")}

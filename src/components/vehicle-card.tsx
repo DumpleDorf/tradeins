@@ -2,6 +2,7 @@ import Link from "next/link";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatOdometer } from "@/lib/utils";
+import { formatVehiclePrice } from "@/lib/vehicle";
 import { StatusBadge } from "@/components/disclaimer";
 
 type VehicleCardProps = {
@@ -12,6 +13,7 @@ type VehicleCardProps = {
     model: string;
     trim: string;
     odometer: number;
+    price: number;
     licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
@@ -50,6 +52,9 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
             {showStatus && vehicle.status && <StatusBadge status={vehicle.status} />}
           </div>
           <p className="line-clamp-2 text-sm text-muted-foreground">{vehicle.trim}</p>
+          {vehicle.price > 0 && (
+            <p className="text-lg font-semibold">{formatVehiclePrice(vehicle.price)}</p>
+          )}
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>{formatOdometer(vehicle.odometer)}</span>
             <span>Plate {vehicle.licensePlateNumber}</span>

@@ -9,7 +9,7 @@ import { PhotoGallery } from "@/components/photo-gallery";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Button } from "@/components/ui/button";
-import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
+import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 
@@ -163,6 +163,9 @@ export default function TeslaListingDetailPage() {
               </h1>
               <StatusBadge status={vehicle.status} />
             </div>
+            {vehicle.price > 0 && (
+              <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
+            )}
             <p className="mt-1 text-sm text-muted-foreground">
               VIN: {vehicle.vin} · Listed by {vehicle.listedBy.name}
             </p>

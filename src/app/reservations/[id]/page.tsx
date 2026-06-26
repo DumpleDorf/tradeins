@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
-import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
+import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
 
 type ReservationDetail = {
   id: string;
@@ -72,6 +72,9 @@ export default function ReservationDetailPage() {
           </h1>
           <StatusBadge status={reservation.status} />
         </div>
+        {vehicle.price > 0 && (
+          <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
+        )}
         <p className="mt-1 text-sm text-muted-foreground">
           Reserved {new Date(reservation.reservedAt).toLocaleString("en-AU")}
         </p>
