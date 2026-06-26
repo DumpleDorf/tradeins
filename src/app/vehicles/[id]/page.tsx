@@ -6,21 +6,10 @@ import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { Button } from "@/components/ui/button";
-import { formatMileage, formatPrice } from "@/lib/utils";
+import { getVehicleDetailRows, type VehicleDetails } from "@/lib/vehicle";
 
-type Vehicle = {
+type Vehicle = VehicleDetails & {
   id: string;
-  year: number;
-  make: string;
-  model: string;
-  mileage: number;
-  exteriorColor: string;
-  interiorColor: string;
-  vin: string;
-  conditionGrade: number;
-  listPrice: string;
-  description: string;
-  availableFrom: string;
   photos: { url: string }[];
 };
 
@@ -90,24 +79,11 @@ export default function VehicleDetailPage() {
               <h1 className="text-3xl font-semibold">
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h1>
-              <p className="mt-2 text-2xl font-semibold text-tesla-red">
-                {formatPrice(vehicle.listPrice)}
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  indicative price
-                </span>
-              </p>
             </div>
 
             <dl className="grid grid-cols-2 gap-4 text-sm">
-              {[
-                ["Mileage", formatMileage(vehicle.mileage)],
-                ["Condition", `Grade ${vehicle.conditionGrade}/5`],
-                ["Exterior", vehicle.exteriorColor],
-                ["Interior", vehicle.interiorColor],
-                ["VIN", vehicle.vin],
-                ["Available from", new Date(vehicle.availableFrom).toLocaleDateString("en-AU")],
-              ].map(([label, value]) => (
-                <div key={label}>
+              {getVehicleDetailRows(vehicle).map(([label, value]) => (
+                <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
                   <dt className="text-muted-foreground">{label}</dt>
                   <dd className="font-medium">{value}</dd>
                 </div>
@@ -115,8 +91,8 @@ export default function VehicleDetailPage() {
             </dl>
 
             <div>
-              <h2 className="mb-2 font-semibold">Description</h2>
-              <p className="text-muted-foreground">{vehicle.description}</p>
+              <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
+              <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
             </div>
 
             {!showConfirm ? (

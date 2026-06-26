@@ -72,18 +72,17 @@ export async function POST(request: Request) {
 
   await prisma.vehicle.create({
     data: {
-      make: "Tesla",
-      model: "Model 3",
-      year: 2022,
-      mileage: 45000,
-      exteriorColor: "Pearl White",
-      interiorColor: "Black",
-      vin: "5YJ3E1EA1KF000001",
-      conditionGrade: 4,
-      listPrice: 38500,
-      description:
-        "Well-maintained Model 3 Long Range with full service history. Minor stone chips on front bumper.",
-      availableFrom: new Date(),
+      vin: "JF1GT7KL5MG123216",
+      licensePlateNumber: "319CN4",
+      year: 2021,
+      make: "Subaru",
+      model: "Impreza",
+      trim: "G5 MY21 2.0i Premium Hatchback. 5dr CVT 7sp AWD",
+      odometer: 32000,
+      numberOfKeys: 2,
+      vehicleDamage: "No",
+      serviceHistory: "Partial Service History",
+      vehicleNotes: "N/A",
       status: "AVAILABLE",
       listedById: teslaEmployee.id,
       photos: {

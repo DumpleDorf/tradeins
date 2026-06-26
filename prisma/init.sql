@@ -43,17 +43,17 @@ CREATE TABLE "PartnerProfile" (
 -- CreateTable
 CREATE TABLE "Vehicle" (
     "id" TEXT NOT NULL,
+    "vin" TEXT NOT NULL,
+    "licensePlateNumber" TEXT NOT NULL,
+    "year" INTEGER NOT NULL,
     "make" TEXT NOT NULL,
     "model" TEXT NOT NULL,
-    "year" INTEGER NOT NULL,
-    "mileage" INTEGER NOT NULL,
-    "exteriorColor" TEXT NOT NULL,
-    "interiorColor" TEXT NOT NULL,
-    "vin" TEXT NOT NULL,
-    "conditionGrade" INTEGER NOT NULL,
-    "listPrice" DECIMAL(12,2) NOT NULL,
-    "description" TEXT NOT NULL,
-    "availableFrom" TIMESTAMP(3) NOT NULL,
+    "trim" TEXT NOT NULL,
+    "odometer" INTEGER NOT NULL,
+    "numberOfKeys" INTEGER NOT NULL,
+    "vehicleDamage" TEXT NOT NULL,
+    "serviceHistory" TEXT NOT NULL,
+    "vehicleNotes" TEXT NOT NULL,
     "status" "VehicleStatus" NOT NULL DEFAULT 'AVAILABLE',
     "listedById" TEXT NOT NULL,
     "rejectionReason" TEXT,
@@ -146,13 +146,7 @@ CREATE INDEX "Vehicle_status_idx" ON "Vehicle"("status");
 CREATE INDEX "Vehicle_make_model_year_idx" ON "Vehicle"("make", "model", "year");
 
 -- CreateIndex
-CREATE INDEX "Vehicle_listPrice_idx" ON "Vehicle"("listPrice");
-
--- CreateIndex
-CREATE INDEX "Vehicle_mileage_idx" ON "Vehicle"("mileage");
-
--- CreateIndex
-CREATE INDEX "Vehicle_conditionGrade_idx" ON "Vehicle"("conditionGrade");
+CREATE INDEX "Vehicle_odometer_idx" ON "Vehicle"("odometer");
 
 -- CreateIndex
 CREATE INDEX "VehiclePhoto_vehicleId_idx" ON "VehiclePhoto"("vehicleId");

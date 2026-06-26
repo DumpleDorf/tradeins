@@ -6,17 +6,21 @@ export const loginSchema = z.object({
 });
 
 export const vehicleSchema = z.object({
+  vin: z.string().min(11).max(17),
+  licensePlateNumber: z.string().min(1),
+  year: z.coerce.number().int(),
   make: z.string().min(1),
   model: z.string().min(1),
-  year: z.coerce.number().int(),
-  mileage: z.coerce.number().int().min(0),
-  exteriorColor: z.string().min(1),
-  interiorColor: z.string().min(1),
-  vin: z.string().min(11).max(17),
-  conditionGrade: z.coerce.number().int().min(1).max(5),
-  listPrice: z.coerce.number().positive(),
-  description: z.string().min(10),
-  availableFrom: z.string().min(1),
+  trim: z.string().min(1),
+  odometer: z.coerce.number().int().min(0),
+  numberOfKeys: z.coerce.number().int().min(0).max(10),
+  vehicleDamage: z.enum(["Yes", "No"]),
+  serviceHistory: z.enum([
+    "Full Service History",
+    "Partial Service History",
+    "No Service History",
+  ]),
+  vehicleNotes: z.string().min(1),
 });
 
 export const partnerInviteSchema = z.object({
@@ -53,11 +57,8 @@ export const inventoryFiltersSchema = z.object({
   model: z.string().optional(),
   yearMin: z.coerce.number().optional(),
   yearMax: z.coerce.number().optional(),
-  mileageMin: z.coerce.number().optional(),
-  mileageMax: z.coerce.number().optional(),
-  conditionGrade: z.coerce.number().optional(),
-  priceMin: z.coerce.number().optional(),
-  priceMax: z.coerce.number().optional(),
-  sort: z.enum(["newest", "price_asc", "price_desc", "mileage"]).optional(),
+  odometerMin: z.coerce.number().optional(),
+  odometerMax: z.coerce.number().optional(),
+  sort: z.enum(["newest", "odometer_asc", "odometer_desc"]).optional(),
   page: z.coerce.number().int().min(1).optional(),
 });

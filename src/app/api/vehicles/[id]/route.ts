@@ -108,9 +108,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const updateData = {
       ...parsed.data,
-      ...(parsed.data.availableFrom
-        ? { availableFrom: new Date(parsed.data.availableFrom) }
-        : {}),
     };
 
     const vehicle = await prisma.vehicle.update({

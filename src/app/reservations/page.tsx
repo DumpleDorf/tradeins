@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
 import { StatusBadge } from "@/components/disclaimer";
-import { formatPrice } from "@/lib/utils";
 
 type Reservation = {
   id: string;
@@ -18,7 +17,7 @@ type Reservation = {
     make: string;
     model: string;
     vin: string;
-    listPrice: string;
+    licensePlateNumber: string;
     photos: { url: string }[];
   };
 };
@@ -68,7 +67,7 @@ export default function ReservationsPage() {
                     <StatusBadge status={r.status} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    VIN: {r.vehicle.vin} · {formatPrice(r.vehicle.listPrice)} · Reserved{" "}
+                    VIN: {r.vehicle.vin} · Plate {r.vehicle.licensePlateNumber} · Reserved{" "}
                     {new Date(r.reservedAt).toLocaleString("en-AU")}
                   </p>
                   {r.rejectionReason && (

@@ -1,7 +1,7 @@
-import { VehicleImage } from "@/components/vehicle-image";
 import Link from "next/link";
+import { VehicleImage } from "@/components/vehicle-image";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatMileage, formatPrice } from "@/lib/utils";
+import { formatOdometer } from "@/lib/utils";
 import { StatusBadge } from "@/components/disclaimer";
 
 type VehicleCardProps = {
@@ -10,9 +10,9 @@ type VehicleCardProps = {
     year: number;
     make: string;
     model: string;
-    mileage: number;
-    conditionGrade: number;
-    listPrice: string | number;
+    trim: string;
+    odometer: number;
+    licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
   };
@@ -49,14 +49,11 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
             </h3>
             {showStatus && vehicle.status && <StatusBadge status={vehicle.status} />}
           </div>
+          <p className="line-clamp-2 text-sm text-muted-foreground">{vehicle.trim}</p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span>{formatMileage(vehicle.mileage)}</span>
-            <span>Grade {vehicle.conditionGrade}/5</span>
+            <span>{formatOdometer(vehicle.odometer)}</span>
+            <span>Plate {vehicle.licensePlateNumber}</span>
           </div>
-          <p className="text-lg font-semibold text-tesla-red">
-            {formatPrice(vehicle.listPrice)}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">indicative</span>
-          </p>
         </CardContent>
       </Card>
     </Link>

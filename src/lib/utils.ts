@@ -14,8 +14,13 @@ export function formatPrice(amount: number | string) {
   }).format(value);
 }
 
+export function formatOdometer(odometer: number) {
+  return new Intl.NumberFormat("en-AU").format(odometer) + " km";
+}
+
+/** @deprecated Use formatOdometer */
 export function formatMileage(mileage: number) {
-  return new Intl.NumberFormat("en-AU").format(mileage) + " km";
+  return formatOdometer(mileage);
 }
 
 export const DISCLAIMER =

@@ -14,9 +14,9 @@ type Vehicle = {
   year: number;
   make: string;
   model: string;
-  mileage: number;
-  conditionGrade: number;
-  listPrice: string;
+  trim: string;
+  odometer: number;
+  licensePlateNumber: string;
   photos: { url: string }[];
 };
 
@@ -30,11 +30,8 @@ export default function InventoryPage() {
     model: "",
     yearMin: "",
     yearMax: "",
-    mileageMin: "",
-    mileageMax: "",
-    conditionGrade: "",
-    priceMin: "",
-    priceMax: "",
+    odometerMin: "",
+    odometerMax: "",
     sort: "newest",
   });
 
@@ -80,11 +77,8 @@ export default function InventoryPage() {
               ["model", "Model"],
               ["yearMin", "Year from"],
               ["yearMax", "Year to"],
-              ["mileageMin", "Mileage from"],
-              ["mileageMax", "Mileage to"],
-              ["conditionGrade", "Condition (1-5)"],
-              ["priceMin", "Price from"],
-              ["priceMax", "Price to"],
+              ["odometerMin", "Odometer from"],
+              ["odometerMax", "Odometer to"],
             ].map(([key, label]) => (
               <div key={key} className="space-y-1">
                 <Label>{label}</Label>
@@ -104,9 +98,8 @@ export default function InventoryPage() {
                 onChange={(e) => setFilters((f) => ({ ...f, sort: e.target.value }))}
               >
                 <option value="newest">Newest</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="mileage">Mileage</option>
+                <option value="odometer_asc">Odometer: Low to High</option>
+                <option value="odometer_desc">Odometer: High to Low</option>
               </select>
             </div>
             <Button

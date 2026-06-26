@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
     const vehicle = await prisma.vehicle.create({
       data: {
         ...parsed.data,
-        availableFrom: new Date(parsed.data.availableFrom),
         listedById: session.user.id,
       },
     });

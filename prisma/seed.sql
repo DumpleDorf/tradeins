@@ -51,23 +51,23 @@ VALUES (
 ON CONFLICT ("userId") DO NOTHING;
 
 INSERT INTO "Vehicle" (
-  "id", "make", "model", "year", "mileage", "exteriorColor", "interiorColor",
-  "vin", "conditionGrade", "listPrice", "description", "availableFrom",
+  "id", "vin", "licensePlateNumber", "year", "make", "model", "trim",
+  "odometer", "numberOfKeys", "vehicleDamage", "serviceHistory", "vehicleNotes",
   "status", "listedById", "createdAt", "updatedAt"
 )
 VALUES (
   'vehicle_demo_001',
-  'Tesla',
-  'Model 3',
-  2022,
-  45000,
-  'Pearl White',
-  'Black',
-  '5YJ3E1EA1KF000001',
-  4,
-  38500.00,
-  'Well-maintained Model 3 Long Range with full service history. Minor stone chips on front bumper. Battery health excellent.',
-  NOW(),
+  'JF1GT7KL5MG123216',
+  '319CN4',
+  2021,
+  'Subaru',
+  'Impreza',
+  'G5 MY21 2.0i Premium Hatchback. 5dr CVT 7sp AWD',
+  32000,
+  2,
+  'No',
+  'Partial Service History',
+  'N/A',
   'AVAILABLE',
   'user_tesla_001',
   NOW(),

@@ -26,27 +26,19 @@ export async function GET(request: NextRequest) {
     if (filters.yearMin) where.year.gte = filters.yearMin;
     if (filters.yearMax) where.year.lte = filters.yearMax;
   }
-  if (filters.mileageMin || filters.mileageMax) {
-    where.mileage = {};
-    if (filters.mileageMin) where.mileage.gte = filters.mileageMin;
-    if (filters.mileageMax) where.mileage.lte = filters.mileageMax;
-  }
-  if (filters.conditionGrade) where.conditionGrade = filters.conditionGrade;
-  if (filters.priceMin || filters.priceMax) {
-    where.listPrice = {};
-    if (filters.priceMin) where.listPrice.gte = filters.priceMin;
-    if (filters.priceMax) where.listPrice.lte = filters.priceMax;
+  if (filters.odometerMin || filters.odometerMax) {
+    where.odometer = {};
+    if (filters.odometerMin) where.odometer.gte = filters.odometerMin;
+    if (filters.odometerMax) where.odometer.lte = filters.odometerMax;
   }
 
   const sort = filters.sort ?? "newest";
   const orderBy: Prisma.VehicleOrderByWithRelationInput =
-    sort === "price_asc"
-      ? { listPrice: "asc" }
-      : sort === "price_desc"
-        ? { listPrice: "desc" }
-        : sort === "mileage"
-          ? { mileage: "asc" }
-          : { createdAt: "desc" };
+    sort === "odometer_asc"
+      ? { odometer: "asc" }
+      : sort === "odometer_desc"
+        ? { odometer: "desc" }
+        : { createdAt: "desc" };
 
   const page = filters.page ?? 1;
 
