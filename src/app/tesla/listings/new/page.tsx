@@ -64,7 +64,11 @@ export default function NewListingPage() {
       return;
     }
 
-    router.push("/tesla/listings");
+    if (data.photoWarnings?.length) {
+      sessionStorage.setItem("listingPhotoWarning", data.photoWarnings.join(" "));
+    }
+
+    router.push(`/tesla/listings/${data.id}`);
   }
 
   return (

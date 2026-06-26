@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { VehicleImage } from "@/components/vehicle-image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatMileage, formatPrice } from "@/lib/utils";
@@ -28,7 +28,7 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
       <Card className="overflow-hidden group-hover:border-tesla-red/50">
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           {imageUrl ? (
-            <Image
+            <VehicleImage
               src={imageUrl}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               fill

@@ -37,6 +37,16 @@ export default function TeslaListingDetailPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
+  const [photoWarning, setPhotoWarning] = useState("");
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  useEffect(() => {
+    const warning = sessionStorage.getItem("listingPhotoWarning");
+    if (warning) {
+      setPhotoWarning(warning);
+      sessionStorage.removeItem("listingPhotoWarning");
+    }
+  }, []);
 
   useEffect(() => {
     fetch(`/api/vehicles/${id}`)
@@ -46,6 +56,31 @@ export default function TeslaListingDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  async function handlePhotoUpload(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setUploadingPhotos(true);
+    setPhotoWarning("");
+    setError("");
+
+    const formData = new FormData(e.currentTarget);
+    const res = await fetch(`/api/vehicles/${id}`, {
+      method: "PATCH",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "Failed to upload photos");
+      setUploadingPhotos(false);
+      return;
+    }
+
+    const updated = await fetch(`/api/vehicles/${id}`).then((r) => r.json());
+    setVehicle(updated);
+    setUploadingPhotos(false);
+    (e.target as HTMLFormElement).reset();
+  }
 
   const canDelete = vehicle && !NON_DELETABLE_STATUSES.includes(vehicle.status);
 
@@ -113,6 +148,12 @@ export default function TeslaListingDetailPage() {
 
         <Disclaimer variant="listing" />
 
+        {photoWarning && (
+          <p className="mt-4 rounded-sm border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            Listing saved, but photos could not be uploaded: {photoWarning}
+          </p>
+        )}
+
         <div className="mt-8 grid gap-8 lg:grid-cols-2">
           <PhotoGallery photos={vehicle.photos} />
 
@@ -140,6 +181,23 @@ export default function TeslaListingDetailPage() {
             <div>
               <h2 className="mb-2 font-semibold">Description</h2>
               <p className="text-muted-foreground">{vehicle.description}</p>
+            </div>
+
+            <div className="rounded-sm border border-border bg-card p-4 space-y-4">
+              <h2 className="font-semibold">Photos</h2>
+              <form onSubmit={handlePhotoUpload} className="space-y-3">
+                <input
+                  name="photos"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  required
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-sm file:border-0 file:bg-tesla-red file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+                />
+                <Button type="submit" variant="outline" disabled={uploadingPhotos}>
+                  {uploadingPhotos ? "Uploading..." : "Upload photos"}
+                </Button>
+              </form>
             </div>
 
             <div className="rounded-sm border border-border bg-card p-4 space-y-4">

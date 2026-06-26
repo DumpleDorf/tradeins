@@ -80,18 +80,20 @@ export async function POST(request: NextRequest) {
     });
 
     const photoFiles = formData.getAll("photos") as File[];
-    const photoUrls: string[] = [];
+    const photoWarnings: string[] = [];
 
     for (let i = 0; i < photoFiles.length; i++) {
       const file = photoFiles[i];
       if (file && file.size > 0) {
         try {
           const url = await uploadVehiclePhoto(file, vehicle.id);
-          photoUrls.push(url);
           await prisma.vehiclePhoto.create({
             data: { vehicleId: vehicle.id, url, sortOrder: i },
           });
         } catch (uploadError) {
+          const message =
+            uploadError instanceof Error ? uploadError.message : "Photo upload failed";
+          photoWarnings.push(message);
           console.error("Photo upload failed:", uploadError);
         }
       }
@@ -124,7 +126,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(vehicle, { status: 201 });
+    return NextResponse.json(
+      {
+        ...vehicle,
+        photoWarnings: photoWarnings.length > 0 ? photoWarnings : undefined,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Failed to create vehicle" }, { status: 500 });

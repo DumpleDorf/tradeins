@@ -74,14 +74,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       for (let i = 0; i < photoFiles.length; i++) {
         const file = photoFiles[i];
         if (file && file.size > 0) {
-          const url = await uploadVehiclePhoto(file, id);
-          await prisma.vehiclePhoto.create({
-            data: {
-              vehicleId: id,
-              url,
-              sortOrder: existingPhotos + i,
-            },
-          });
+          try {
+            const url = await uploadVehiclePhoto(file, id);
+            await prisma.vehiclePhoto.create({
+              data: {
+                vehicleId: id,
+                url,
+                sortOrder: existingPhotos + i,
+              },
+            });
+          } catch (uploadError) {
+            console.error("Photo upload failed:", uploadError);
+            return NextResponse.json(
+              {
+                error:
+                  uploadError instanceof Error
+                    ? uploadError.message
+                    : "Failed to upload photos",
+              },
+              { status: 500 }
+            );
+          }
         }
       }
     } else {

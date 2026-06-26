@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { VehicleImage } from "@/components/vehicle-image";
 
 export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -27,7 +27,7 @@ export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
         )}
         onClick={() => setZoomed(!zoomed)}
       >
-        <Image
+        <VehicleImage
           src={active.url}
           alt="Vehicle photo"
           fill
@@ -50,7 +50,7 @@ export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
                 index === activeIndex ? "border-tesla-red" : "border-transparent opacity-70 hover:opacity-100"
               )}
             >
-              <Image src={photo.url} alt="" fill className="object-cover" sizes="96px" />
+              <VehicleImage src={photo.url} alt="" fill className="object-cover" sizes="96px" />
             </button>
           ))}
         </div>
