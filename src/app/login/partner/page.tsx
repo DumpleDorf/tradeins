@@ -10,7 +10,7 @@ export default function PartnerLoginPage() {
         <LoginForm
           loginType="partner"
           title="Partner Login"
-          subtitle="Browse and reserve certified trade-in inventory"
+          subtitle="Browse and reserve trade-in inventory"
         />
         <div className="mx-auto mt-8 max-w-md">
           <Disclaimer />

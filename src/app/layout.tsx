@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tesla Certified Trade-In Wholesale Portal",
-  description: "Internal wholesale portal for Tesla certified trade-in vehicles",
+  title: "Tesla Trade-In Wholesale Portal",
+  description: "Internal wholesale portal for Tesla trade-in vehicles",
 };
 
 export default function RootLayout({

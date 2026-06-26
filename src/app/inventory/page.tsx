@@ -75,7 +75,7 @@ export default function InventoryPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-semibold">Available Inventory</h1>
-            <p className="mt-1 text-muted-foreground">Browse certified trade-in vehicles</p>
+            <p className="mt-1 text-muted-foreground">Browse trade-in vehicles</p>
           </div>
           <Link href="/reservations">
             <Button variant="outline">My Reservations</Button>
