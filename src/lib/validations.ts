@@ -8,7 +8,7 @@ export const loginSchema = z.object({
 export const vehicleSchema = z.object({
   make: z.string().min(1),
   model: z.string().min(1),
-  year: z.coerce.number().int().min(1990).max(new Date().getFullYear() + 1),
+  year: z.coerce.number().int(),
   mileage: z.coerce.number().int().min(0),
   exteriorColor: z.string().min(1),
   interiorColor: z.string().min(1),

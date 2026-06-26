@@ -85,11 +85,15 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < photoFiles.length; i++) {
       const file = photoFiles[i];
       if (file && file.size > 0) {
-        const url = await uploadVehiclePhoto(file, vehicle.id);
-        photoUrls.push(url);
-        await prisma.vehiclePhoto.create({
-          data: { vehicleId: vehicle.id, url, sortOrder: i },
-        });
+        try {
+          const url = await uploadVehiclePhoto(file, vehicle.id);
+          photoUrls.push(url);
+          await prisma.vehiclePhoto.create({
+            data: { vehicleId: vehicle.id, url, sortOrder: i },
+          });
+        } catch (uploadError) {
+          console.error("Photo upload failed:", uploadError);
+        }
       }
     }
 

@@ -9,6 +9,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Disclaimer } from "@/components/disclaimer";
 
+function formatApiError(data: unknown): string {
+  if (!data || typeof data !== "object") {
+    return "Failed to create listing. Check all fields.";
+  }
+
+  const payload = data as { error?: unknown };
+  if (typeof payload.error === "string") {
+    return payload.error;
+  }
+
+  if (payload.error && typeof payload.error === "object") {
+    const flat = payload.error as {
+      fieldErrors?: Record<string, string[]>;
+      formErrors?: string[];
+    };
+    const messages: string[] = [];
+
+    if (flat.formErrors?.length) {
+      messages.push(...flat.formErrors);
+    }
+
+    for (const [field, msgs] of Object.entries(flat.fieldErrors ?? {})) {
+      if (msgs?.length) {
+        messages.push(`${field}: ${msgs.join(", ")}`);
+      }
+    }
+
+    if (messages.length > 0) {
+      return messages.join(" ");
+    }
+  }
+
+  return "Failed to create listing. Check all fields.";
+}
+
 export default function NewListingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -24,7 +59,7 @@ export default function NewListingPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError("Failed to create listing. Check all fields.");
+      setError(formatApiError(data));
       setLoading(false);
       return;
     }
@@ -71,8 +106,8 @@ export default function NewListingPage() {
               <Input id="interiorColor" name="interiorColor" required />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="vin">VIN</Label>
-              <Input id="vin" name="vin" required />
+              <Label htmlFor="vin">VIN (11–17 characters)</Label>
+              <Input id="vin" name="vin" minLength={11} maxLength={17} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="conditionGrade">Condition Grade (1–5)</Label>
@@ -87,7 +122,7 @@ export default function NewListingPage() {
               <Input id="availableFrom" name="availableFrom" type="date" required />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Description (min. 10 characters)</Label>
               <textarea
                 id="description"
                 name="description"
