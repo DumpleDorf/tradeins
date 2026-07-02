@@ -12,9 +12,10 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-semibold tracking-tight">
-            Tesla <span className="text-tesla-red">Trade-Ins</span>
+        <Link href="/" className="inline-flex items-center">
+          <span className="inline-flex items-center gap-1.5 text-xl font-semibold leading-none tracking-tight">
+            <span>Tesla</span>
+            <span className="text-tesla-red">Trade-Ins</span>
           </span>
         </Link>
 
