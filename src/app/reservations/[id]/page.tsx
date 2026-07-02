@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { Header } from "@/components/header";
 import { BackLink } from "@/components/back-link";
 import { LoadingOverlay } from "@/components/loading-overlay";
-import { Disclaimer, StatusBadge } from "@/components/disclaimer";
-import { PhotoGallery } from "@/components/photo-gallery";
-import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
+import { Disclaimer } from "@/components/disclaimer";
+import { VehicleDetailContent } from "@/components/vehicle-detail-content";
+import { type VehicleDetails } from "@/lib/vehicle";
 
 type ReservationDetail = {
   id: string;
@@ -17,6 +16,7 @@ type ReservationDetail = {
   rejectionReason?: string | null;
   vehicle: VehicleDetails & {
     id: string;
+    status: string;
     photos: { url: string }[];
   };
 };
@@ -39,7 +39,7 @@ export default function ReservationDetailPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <LoadingOverlay show label="Loading reservation..." />
+        <LoadingOverlay show label="Loading purchase..." />
       </div>
     );
   }
@@ -48,9 +48,9 @@ export default function ReservationDetailPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16">
-          <p>Reservation not found.</p>
-          <BackLink href="/reservations" label="Back to my reservations" className="mt-4" />
+        <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <p>Purchase not found.</p>
+          <BackLink href="/reservations" label="Back to my purchases" className="mt-4" />
         </main>
       </div>
     );
@@ -62,52 +62,33 @@ export default function ReservationDetailPage() {
     <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <BackLink href="/reservations" label="Back to my reservations" />
+        <BackLink href="/reservations" label="Back to my purchases" />
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold">
-            {vehicle.year} {vehicle.make} {vehicle.model}
-          </h1>
-          <StatusBadge status={reservation.status} />
+        <div className="mt-6">
+          <Disclaimer />
         </div>
-        {vehicle.price > 0 && (
-          <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
-        )}
-        <p className="mt-1 text-sm text-muted-foreground">
-          Reserved {new Date(reservation.reservedAt).toLocaleString("en-AU")}
-        </p>
-
-        <Disclaimer />
 
         {reservation.rejectionReason && (
           <p className="mt-4 rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            Rejection reason: {reservation.rejectionReason}
+            Note: {reservation.rejectionReason}
           </p>
         )}
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <PhotoGallery photos={vehicle.photos} />
-
-          <div className="space-y-6">
-            <dl className="grid grid-cols-2 gap-4 text-sm">
-              {getVehicleDetailRows(vehicle).map(([label, value]) => (
-                <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="font-medium">{value}</dd>
-                </div>
-              ))}
-            </dl>
-
-            <div>
-              <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
-              <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              This vehicle is reserved and hidden from partner inventory while your request is
-              reviewed by Tesla.
-            </p>
-          </div>
+        <div className="mt-8 animate-slide-up">
+          <VehicleDetailContent
+            vehicle={vehicle}
+            statusBadge={vehicle.status}
+            subtitle={`Purchased ${new Date(reservation.reservedAt).toLocaleString("en-AU")}`}
+            sidebar={
+              <div className="rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
+                <h2 className="mb-2 font-semibold">Purchase status</h2>
+                <p className="text-sm text-muted-foreground">
+                  This vehicle is reserved under your company and hidden from other suppliers.
+                  Contact Tesla to finalize the sale.
+                </p>
+              </div>
+            }
+          />
         </div>
       </main>
     </div>

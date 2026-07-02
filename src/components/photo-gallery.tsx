@@ -10,7 +10,7 @@ export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
 
   if (photos.length === 0) {
     return (
-      <div className="flex aspect-[16/10] items-center justify-center rounded-sm bg-muted">
+      <div className="flex aspect-[16/10] items-center justify-center rounded-sm border border-border/80 bg-card/80 text-muted-foreground backdrop-blur-sm">
         No photos available
       </div>
     );
@@ -22,7 +22,7 @@ export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
     <div className="space-y-4">
       <div
         className={cn(
-          "relative aspect-[16/10] overflow-hidden rounded-sm bg-muted",
+          "relative aspect-[16/10] overflow-hidden rounded-sm border border-border/80 bg-muted",
           zoomed && "cursor-zoom-out"
         )}
         onClick={() => setZoomed(!zoomed)}
@@ -40,14 +40,17 @@ export function PhotoGallery({ photos }: { photos: { url: string }[] }) {
         />
       </div>
       {photos.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="filter-panel-scroll flex gap-2 overflow-x-auto pb-2">
           {photos.map((photo, index) => (
             <button
               key={photo.url}
+              type="button"
               onClick={() => setActiveIndex(index)}
               className={cn(
                 "relative h-16 w-24 shrink-0 overflow-hidden rounded-sm border-2 transition-colors",
-                index === activeIndex ? "border-tesla-red" : "border-transparent opacity-70 hover:opacity-100"
+                index === activeIndex
+                  ? "border-tesla-red"
+                  : "border-transparent opacity-70 hover:opacity-100"
               )}
             >
               <VehicleImage src={photo.url} alt="" fill className="object-cover" sizes="96px" />

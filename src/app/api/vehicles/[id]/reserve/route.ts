@@ -40,13 +40,9 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         data: {
           vehicleId,
           partnerId: session.user.id,
-          status: "PENDING_APPROVAL",
+          status: "APPROVED",
+          reviewedAt: new Date(),
         },
-      });
-
-      await tx.vehicle.update({
-        where: { id: vehicleId },
-        data: { status: "PENDING_APPROVAL" },
       });
 
       return { vehicle: updatedVehicle, reservation };
@@ -54,7 +50,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
     logAudit({
       actorId: session.user.id,
-      action: "VEHICLE_RESERVED",
+      action: "VEHICLE_PURCHASED",
       entityType: "Reservation",
       entityId: result.reservation.id,
       metadata: {
@@ -71,6 +67,6 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: "Failed to reserve vehicle" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to purchase vehicle" }, { status: 500 });
   }
 }

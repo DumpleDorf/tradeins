@@ -24,7 +24,7 @@ export function formatMileage(mileage: number) {
 }
 
 export const DISCLAIMER =
-  "All reservations are subject to final approval by Tesla. No sale is confirmed until you receive written confirmation from Tesla.";
+  "Purchasing a vehicle reserves it under your company and hides it from other suppliers. Contact Tesla to finalize the sale.";
 
 export const LISTING_DISCLAIMER =
-  "No sales are final until approved by Tesla.";
+  "Reserved vehicles are held for the purchasing partner. Mark vehicles as sold once the sale is complete.";

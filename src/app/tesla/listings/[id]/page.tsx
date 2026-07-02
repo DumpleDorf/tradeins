@@ -2,18 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
-import { BackLink } from "@/components/back-link";
-import { Disclaimer, StatusBadge } from "@/components/disclaimer";
-import { LoadingOverlay } from "@/components/loading-overlay";
-import { PhotoGallery } from "@/components/photo-gallery";
-import { VehicleFormFields } from "@/components/vehicle-form-fields";
+import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { ListingPhotoManager, type ManagedPhoto } from "@/components/listing-photo-manager";
+import { BackLink } from "@/components/back-link";
+import { Disclaimer } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
+import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { Button } from "@/components/ui/button";
-import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
+import { type VehicleDetails } from "@/lib/vehicle";
 import { cn } from "@/lib/utils";
 
 type VehiclePhoto = {
@@ -28,7 +27,7 @@ type Vehicle = VehicleDetails & {
   listedBy: { name: string };
 };
 
-const NON_EDITABLE_STATUSES = ["PENDING_APPROVAL", "SOLD"];
+const NON_EDITABLE_STATUSES = ["RESERVED", "SOLD"];
 
 export default function TeslaListingDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +42,7 @@ export default function TeslaListingDetailPage() {
   const [photoWarning, setPhotoWarning] = useState("");
   const [photosToRemove, setPhotosToRemove] = useState<string[]>([]);
   const [orderedPhotos, setOrderedPhotos] = useState<ManagedPhoto[]>([]);
+  const [markingSold, setMarkingSold] = useState(false);
 
   useEffect(() => {
     const warning = sessionStorage.getItem("listingPhotoWarning");
@@ -72,6 +72,7 @@ export default function TeslaListingDetailPage() {
 
   const canEdit = vehicle && !NON_EDITABLE_STATUSES.includes(vehicle.status);
   const canDelete = canEdit;
+  const canMarkSold = vehicle?.status === "RESERVED";
 
   function cancelEdit() {
     setEditing(false);
@@ -147,6 +148,23 @@ export default function TeslaListingDetailPage() {
     router.refresh();
   }
 
+  async function handleMarkSold() {
+    setMarkingSold(true);
+    setError("");
+
+    const res = await fetch(`/api/vehicles/${id}/mark-sold`, { method: "POST" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? "Failed to mark vehicle as sold");
+      setMarkingSold(false);
+      return;
+    }
+
+    setVehicle((current) => (current ? { ...current, status: "SOLD" } : current));
+    setMarkingSold(false);
+  }
+
   if (loading) {
     return (
       <PageShell>
@@ -168,33 +186,14 @@ export default function TeslaListingDetailPage() {
 
   return (
     <PageShell>
-      <LoadingOverlay show={saving || removing} label={removing ? "Removing listing..." : "Saving changes..."} />
+      <LoadingOverlay
+        show={saving || removing || markingSold}
+        label={removing ? "Removing listing..." : markingSold ? "Marking as sold..." : "Saving changes..."}
+      />
 
-      <div className={cn(editing && "mx-auto max-w-2xl")}>
-        <BackLink href="/tesla/listings" label="Back to listings" />
+      <BackLink href="/tesla/listings" label="Back to listings" />
 
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div className={cn(editing && "w-full text-center")}>
-            <div className={cn("flex items-center gap-3", editing && "justify-center")}>
-              <h1 className="text-3xl font-semibold">
-                {vehicle.year} {vehicle.make} {vehicle.model}
-              </h1>
-              <StatusBadge status={vehicle.status} />
-            </div>
-            {vehicle.price > 0 && (
-              <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
-            )}
-            <p className="mt-1 text-sm text-muted-foreground">
-              VIN: {vehicle.vin} · Listed by {vehicle.listedBy.name}
-            </p>
-          </div>
-          {canEdit && !editing && (
-            <Button variant="outline" onClick={startEdit}>
-              Edit listing
-            </Button>
-          )}
-        </div>
-
+      <div className={cn("mt-6", editing && "mx-auto max-w-2xl")}>
         <Disclaimer variant="listing" />
 
         {photoWarning && (
@@ -207,6 +206,12 @@ export default function TeslaListingDetailPage() {
 
         {editing ? (
           <form onSubmit={handleEditSubmit} className="mt-8 space-y-6">
+            <div className="text-center">
+              <h1 className="text-3xl font-semibold">
+                Edit {vehicle.year} {vehicle.make} {vehicle.model}
+              </h1>
+            </div>
+
             <VehicleFormFields defaultValues={vehicle} idPrefix="edit-" showPhotos />
 
             <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
@@ -233,52 +238,32 @@ export default function TeslaListingDetailPage() {
             </div>
           </form>
         ) : (
-          <div className="mt-8 grid gap-8 lg:grid-cols-2">
-            <PhotoGallery photos={vehicle.photos} />
-
-            <div className="space-y-6">
-              <dl className="grid grid-cols-2 gap-4 text-sm">
-                {getVehicleDetailRows(vehicle).map(([label, value]) => (
-                  <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
-                    <dt className="text-muted-foreground">{label}</dt>
-                    <dd className="font-medium">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <div>
-                <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
-                <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
-              </div>
-
-              <div className="space-y-4 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
-                <h2 className="font-semibold">Manage listing</h2>
-
-                {!canDelete && (
-                  <p className="text-sm text-muted-foreground">
-                    This listing cannot be edited or removed while it is{" "}
-                    {vehicle.status.replace(/_/g, " ").toLowerCase()}.{" "}
-                    {vehicle.status === "PENDING_APPROVAL" && (
-                      <Link href="/tesla/reservations" className="text-tesla-red hover:underline">
-                        Review the reservation first
-                      </Link>
-                    )}
-                  </p>
-                )}
-
-                {canDelete && !showConfirm && (
-                  <div className="flex flex-wrap gap-3">
+          <div className="mt-8 animate-slide-up">
+            <VehicleDetailContent
+              vehicle={vehicle}
+              subtitle={`VIN: ${vehicle.vin}`}
+              actions={
+                <>
+                  {canEdit && (
                     <Button variant="outline" onClick={startEdit}>
                       Edit listing
                     </Button>
+                  )}
+                  {canMarkSold && (
+                    <Button onClick={handleMarkSold} disabled={markingSold}>
+                      Mark as sold
+                    </Button>
+                  )}
+                  {canDelete && (
                     <Button variant="destructive" onClick={() => setShowConfirm(true)}>
                       Remove listing
                     </Button>
-                  </div>
-                )}
-
-                {canDelete && showConfirm && (
-                  <div className="space-y-3">
+                  )}
+                </>
+              }
+              sidebar={
+                showConfirm ? (
+                  <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
                     <p className="text-sm">
                       Remove this listing permanently? It will be deleted from partner inventory
                       and cannot be undone.
@@ -292,9 +277,17 @@ export default function TeslaListingDetailPage() {
                       </Button>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
+                ) : vehicle.status === "RESERVED" ? (
+                  <div className="rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
+                    <h2 className="mb-2 font-semibold">Reserved vehicle</h2>
+                    <p className="text-sm text-muted-foreground">
+                      This vehicle has been purchased by a partner and is hidden from supplier
+                      inventory. Mark it as sold once the sale is complete.
+                    </p>
+                  </div>
+                ) : undefined
+              }
+            />
           </div>
         )}
       </div>

@@ -50,7 +50,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (["SOLD", "PENDING_APPROVAL"].includes(existing.status)) {
+  if (["SOLD", "RESERVED"].includes(existing.status)) {
     return NextResponse.json(
       { error: "Cannot edit vehicle after approval stage" },
       { status: 400 }
@@ -190,7 +190,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (existing.status === "PENDING_APPROVAL" || existing.status === "SOLD") {
+  if (existing.status === "RESERVED" || existing.status === "SOLD") {
     return NextResponse.json(
       { error: "Cannot delete vehicle in current status" },
       { status: 400 }

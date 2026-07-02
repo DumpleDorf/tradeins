@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/header";
+import { BackLink } from "@/components/back-link";
 import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
-import { PhotoGallery } from "@/components/photo-gallery";
+import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { Button } from "@/components/ui/button";
-import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
+import { type VehicleDetails } from "@/lib/vehicle";
+import { cn } from "@/lib/utils";
 
 type Vehicle = VehicleDetails & {
   id: string;
@@ -19,8 +21,8 @@ export default function VehicleDetailPage() {
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reserving, setReserving] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -32,16 +34,16 @@ export default function VehicleDetailPage() {
       });
   }, [id]);
 
-  async function handleReserve() {
-    setReserving(true);
+  async function handlePurchase() {
+    setPurchasing(true);
     setError("");
 
     const res = await fetch(`/api/vehicles/${id}/reserve`, { method: "POST" });
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Failed to reserve vehicle");
-      setReserving(false);
+      setError(data.error ?? "Failed to purchase vehicle");
+      setPurchasing(false);
       return;
     }
 
@@ -61,70 +63,83 @@ export default function VehicleDetailPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16">Vehicle not found.</main>
+        <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <p>Vehicle not found.</p>
+          <BackLink href="/inventory" label="Back to inventory" className="mt-4" />
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen">
-      <LoadingOverlay show={reserving} label="Reserving vehicle..." />
+      <LoadingOverlay show={purchasing} label="Purchasing vehicle..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Disclaimer />
+        <BackLink href="/inventory" label="Back to inventory" />
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <PhotoGallery photos={vehicle.photos} />
+        <div className="mt-6 animate-slide-up">
+          <Disclaimer />
+        </div>
 
-          <div className="space-y-6 animate-slide-up">
-            <div>
-              <h1 className="text-3xl font-semibold">
-                {vehicle.year} {vehicle.make} {vehicle.model}
-              </h1>
-              {vehicle.price > 0 && (
-                <p className="mt-2 text-2xl font-semibold">{formatVehiclePrice(vehicle.price)}</p>
-              )}
-            </div>
-
-            <dl className="grid grid-cols-2 gap-4 text-sm">
-              {getVehicleDetailRows(vehicle).map(([label, value]) => (
-                <div key={label} className={label === "Trim" ? "col-span-2" : undefined}>
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="font-medium">{value}</dd>
-                </div>
-              ))}
-            </dl>
-
-            <div>
-              <h2 className="mb-2 font-semibold">Vehicle Notes</h2>
-              <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
-            </div>
-
-            {!showConfirm ? (
-              <Button size="lg" className="w-full sm:w-auto" onClick={() => setShowConfirm(true)}>
-                Reserve This Vehicle
-              </Button>
-            ) : (
-              <div className="rounded-sm border border-border bg-card p-4 space-y-4">
-                <p className="text-sm">
-                  Confirm your intent to purchase this vehicle. It will be immediately
-                  reserved and hidden from other partners. Tesla will review your
-                  reservation.
+        <div className="mt-8 animate-slide-up">
+          <VehicleDetailContent
+            vehicle={vehicle}
+            sidebar={
+              <div className="rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
+                <h2 className="mb-3 font-semibold">Purchase vehicle</h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Reserve this vehicle under your company. It will be hidden from other suppliers
+                  once purchased.
                 </p>
-                {error && <p className="text-sm text-red-400">{error}</p>}
-                <div className="flex gap-3">
-                  <Button onClick={handleReserve} disabled={reserving}>
-                    {reserving ? "Reserving..." : "Confirm Reservation"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowConfirm(false)}>
-                    Cancel
-                  </Button>
-                </div>
+                <Button size="lg" className="w-full" onClick={() => setShowDialog(true)}>
+                  Purchase this Vehicle
+                </Button>
               </div>
-            )}
-          </div>
+            }
+          />
         </div>
       </main>
+
+      {showDialog && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="purchase-dialog-title"
+        >
+          <div
+            className={cn(
+              "w-full max-w-md rounded-sm border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-md animate-slide-up"
+            )}
+          >
+            <h2 id="purchase-dialog-title" className="text-lg font-semibold">
+              Confirm purchase
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Pressing confirm below will hide this vehicle listing from other suppliers and
+              reserve this vehicle under your company.
+            </p>
+            {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+            <div className="mt-6 flex gap-3">
+              <Button className="flex-1" onClick={handlePurchase} disabled={purchasing}>
+                {purchasing ? "Confirming..." : "Confirm"}
+              </Button>
+              <Button
+                className="flex-1"
+                variant="outline"
+                onClick={() => {
+                  setShowDialog(false);
+                  setError("");
+                }}
+                disabled={purchasing}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

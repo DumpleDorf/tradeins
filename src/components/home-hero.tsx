@@ -60,7 +60,7 @@ export function HomeHero() {
             </h1>
             <p className="hero-text-shadow mx-auto mt-6 max-w-xl text-lg text-white/90">
               Tesla employees list trade-in vehicles. Approved wholesale partners browse
-              inventory and reserve vehicles for purchase.
+              inventory and purchase vehicles for your company.
             </p>
 
             {isLoggedIn ? (

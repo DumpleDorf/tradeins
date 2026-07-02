@@ -16,7 +16,6 @@ type ReportingData = {
     totalListings: number;
     available: number;
     reserved: number;
-    pendingApproval: number;
     sold: number;
     rejected: number;
     averagePrice: number;
@@ -73,17 +72,14 @@ export default function TeslaReportingPage() {
   return (
     <PageShell>
       <LoadingOverlay show={loading} label="Loading reporting..." />
-      <PageHeader title="Reporting" description="Trade-in inventory and reservation overview" />
+      <PageHeader title="Reporting" description="Trade-in inventory and purchase overview" />
 
       {data && (
         <div className="animate-slide-up space-y-10">
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard label="Total listings" value={data.stats.totalListings} />
             <StatCard label="Available" value={data.stats.available} />
-            <StatCard
-              label="Reserved / pending"
-              value={data.stats.reserved + data.stats.pendingApproval}
-            />
+            <StatCard label="Reserved" value={data.stats.reserved} />
             <StatCard label="Sold" value={data.stats.sold} />
             <StatCard label="Average price" value={formatVehiclePrice(data.stats.averagePrice)} />
             <StatCard
@@ -163,7 +159,7 @@ export default function TeslaReportingPage() {
                           <p className="text-muted-foreground">{vehicle.partner.email}</p>
                           {vehicle.reservedAt && (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              Reserved {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
+                              Purchased {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
                             </p>
                           )}
                         </>

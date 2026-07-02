@@ -16,7 +16,7 @@ export default function InventoryPage() {
           </div>
           <Link href="/reservations" className="animate-slide-up shrink-0">
             <Button variant="outline" className="border-border/80 bg-card/80 backdrop-blur-sm">
-              My Reservations
+              My Purchases
             </Button>
           </Link>
         </div>

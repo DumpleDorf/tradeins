@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { VehicleStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -39,13 +39,11 @@ export async function GET() {
       take: 8,
     }),
     prisma.vehicle.findMany({
-      where: {
-        status: { in: [VehicleStatus.RESERVED, VehicleStatus.PENDING_APPROVAL] },
-      },
+      where: { status: VehicleStatus.RESERVED },
       include: {
         photos: { orderBy: { sortOrder: "asc" }, take: 1 },
         reservations: {
-          where: { status: "PENDING_APPROVAL" },
+          where: { status: "APPROVED" },
           orderBy: { reservedAt: "desc" },
           take: 1,
           include: {
@@ -73,7 +71,6 @@ export async function GET() {
       totalListings,
       available: countByStatus.AVAILABLE ?? 0,
       reserved: countByStatus.RESERVED ?? 0,
-      pendingApproval: countByStatus.PENDING_APPROVAL ?? 0,
       sold: countByStatus.SOLD ?? 0,
       rejected: countByStatus.REJECTED ?? 0,
       averagePrice: Math.round(priceAggregate._avg.price ?? 0),
