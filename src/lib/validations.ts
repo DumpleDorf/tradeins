@@ -72,7 +72,23 @@ export const inventoryFiltersSchema = z.object({
   yearMax: optionalNumber,
   odometerMin: optionalNumber,
   odometerMax: optionalNumber,
-  sort: z.enum(["newest", "odometer_asc", "odometer_desc"]).optional(),
+  vehicleDamage: z.enum(["Yes", "No"]).optional(),
+  serviceHistory: z
+    .enum(["Full Service History", "Partial Service History", "No Service History"])
+    .optional(),
+  search: z.string().optional(),
+  sort: z
+    .enum([
+      "newest",
+      "oldest",
+      "year_desc",
+      "year_asc",
+      "odometer_asc",
+      "odometer_desc",
+      "price_asc",
+      "price_desc",
+    ])
+    .optional(),
   page: z.preprocess(
     (value) => (value === "" || value === undefined || value === null ? undefined : value),
     z.coerce.number().int().min(1).optional()

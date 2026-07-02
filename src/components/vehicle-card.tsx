@@ -26,9 +26,9 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
   const imageUrl = vehicle.photos[0]?.url;
 
   return (
-    <Link href={href} className="group block animate-stagger-in">
-      <Card className="overflow-hidden border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-tesla-red/50 group-hover:shadow-lg group-hover:shadow-tesla-red/10">
-        <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+    <Link href={href} className="group flex h-full animate-stagger-in flex-col">
+      <Card className="flex h-full flex-col overflow-hidden border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-tesla-red/50 group-hover:shadow-lg group-hover:shadow-tesla-red/10">
+        <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-muted">
           {imageUrl ? (
             <VehicleImage
               src={imageUrl}
@@ -44,18 +44,18 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
             </div>
           )}
         </div>
-        <CardContent className="space-y-2 p-4">
+        <CardContent className="flex flex-1 flex-col gap-2 p-4">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold">
+            <h3 className="line-clamp-1 font-semibold">
               {vehicle.year} {vehicle.make} {vehicle.model}
             </h3>
             {showStatus && vehicle.status && <StatusBadge status={vehicle.status} />}
           </div>
-          <p className="line-clamp-2 text-sm text-muted-foreground">{vehicle.trim}</p>
-          {vehicle.price > 0 && (
-            <p className="text-lg font-semibold">{formatVehiclePrice(vehicle.price)}</p>
-          )}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+          <p className="line-clamp-2 min-h-[2.5rem] text-sm text-muted-foreground">
+            {vehicle.trim || "\u00A0"}
+          </p>
+          <p className="text-lg font-semibold">{formatVehiclePrice(vehicle.price)}</p>
+          <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <span>{formatOdometer(vehicle.odometer)}</span>
             <span>Plate {vehicle.licensePlateNumber}</span>
           </div>
