@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/header";
+import { BackLink } from "@/components/back-link";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
@@ -49,9 +50,7 @@ export default function ReservationDetailPage() {
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-16">
           <p>Reservation not found.</p>
-          <Link href="/reservations" className="text-tesla-red hover:underline">
-            Back to my reservations
-          </Link>
+          <BackLink href="/reservations" label="Back to my reservations" className="mt-4" />
         </main>
       </div>
     );
@@ -63,9 +62,7 @@ export default function ReservationDetailPage() {
     <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/reservations" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to my reservations
-        </Link>
+        <BackLink href="/reservations" label="Back to my reservations" />
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-semibold">

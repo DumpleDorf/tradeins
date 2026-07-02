@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       const formData = await request.formData();
       data = Object.fromEntries(
         [...formData.entries()].filter(
-          ([key]) => key !== "photos" && key !== "removePhotoIds"
+          ([key]) => key !== "photos" && key !== "removePhotoIds" && key !== "photoOrder"
         )
       );
 
@@ -78,6 +78,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
             vehicleId: id,
           },
         });
+      }
+
+      const photoOrder = formData.getAll("photoOrder").map(String).filter(Boolean);
+      if (photoOrder.length > 0) {
+        await Promise.all(
+          photoOrder.map((photoId, index) =>
+            prisma.vehiclePhoto.updateMany({
+              where: { id: photoId, vehicleId: id },
+              data: { sortOrder: index },
+            })
+          )
+        );
       }
 
       const photoFiles = formData.getAll("photos") as File[];
@@ -106,6 +118,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
           },
         });
         delete data.removePhotoIds;
+      }
+      if (Array.isArray(body.photoOrder) && body.photoOrder.length > 0) {
+        await Promise.all(
+          body.photoOrder.map((photoId: string, index: number) =>
+            prisma.vehiclePhoto.updateMany({
+              where: { id: photoId, vehicleId: id },
+              data: { sortOrder: index },
+            })
+          )
+        );
+        delete data.photoOrder;
       }
     }
 

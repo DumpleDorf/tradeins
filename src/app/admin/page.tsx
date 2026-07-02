@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const teslaLinks = [
   { href: "/tesla/listings", title: "Listings", desc: "Create and manage vehicle listings" },
   { href: "/tesla/reservations", title: "Reservations", desc: "Approve or reject partner reservations" },
+  { href: "/tesla/reporting", title: "Reporting", desc: "Inventory stats and reserved vehicle overview" },
   { href: "/tesla/partners", title: "Partners", desc: "Invite and manage wholesale partners" },
   { href: "/tesla/audit", title: "Audit Log", desc: "View all platform activity" },
 ];
@@ -34,7 +35,7 @@ export default function AdminDashboardPage() {
 
       <section className="mt-8">
         <h2 className="text-lg font-medium">Trade-In Management</h2>
-        <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {teslaLinks.map((link, index) => (
             <Link
               key={link.href}

@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,15 +84,13 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-md px-4 py-16">
-        <h1 className="mb-6 text-2xl font-semibold">Set New Password</h1>
+        <div className="mb-6 flex justify-center">
+          <BackLink href="/?signin=1" label="Back to sign in" />
+        </div>
+        <h1 className="mb-6 text-center text-2xl font-semibold">Set New Password</h1>
         <Suspense fallback={<p>Loading...</p>}>
           <ResetPasswordForm />
         </Suspense>
-        <p className="mt-4 text-center text-sm">
-          <Link href="/?signin=1" className="text-tesla-red hover:underline">
-            Back to login
-          </Link>
-        </p>
       </main>
     </div>
   );

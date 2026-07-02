@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/header";
+import { PageShell } from "@/components/page-shell";
+import { BackLink } from "@/components/back-link";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
-import { VehicleImage } from "@/components/vehicle-image";
+import { ListingPhotoManager, type ManagedPhoto } from "@/components/listing-photo-manager";
 import { Button } from "@/components/ui/button";
 import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
+import { cn } from "@/lib/utils";
 
 type VehiclePhoto = {
   id: string;
@@ -40,6 +42,7 @@ export default function TeslaListingDetailPage() {
   const [error, setError] = useState("");
   const [photoWarning, setPhotoWarning] = useState("");
   const [photosToRemove, setPhotosToRemove] = useState<string[]>([]);
+  const [orderedPhotos, setOrderedPhotos] = useState<ManagedPhoto[]>([]);
 
   useEffect(() => {
     const warning = sessionStorage.getItem("listingPhotoWarning");
@@ -58,6 +61,15 @@ export default function TeslaListingDetailPage() {
       });
   }, [id]);
 
+  useEffect(() => {
+    if (!vehicle) return;
+    setOrderedPhotos(
+      vehicle.photos
+        .filter((photo) => !photosToRemove.includes(photo.id))
+        .map((photo) => ({ id: photo.id, url: photo.url }))
+    );
+  }, [vehicle, photosToRemove]);
+
   const canEdit = vehicle && !NON_EDITABLE_STATUSES.includes(vehicle.status);
   const canDelete = canEdit;
 
@@ -67,6 +79,18 @@ export default function TeslaListingDetailPage() {
     setError("");
   }
 
+  function startEdit() {
+    if (!vehicle) return;
+    setOrderedPhotos(vehicle.photos.map((photo) => ({ id: photo.id, url: photo.url })));
+    setPhotosToRemove([]);
+    setEditing(true);
+  }
+
+  function handleRemovePhoto(photoId: string) {
+    setPhotosToRemove((ids) => [...ids, photoId]);
+    setOrderedPhotos((photos) => photos.filter((photo) => photo.id !== photoId));
+  }
+
   async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
@@ -74,6 +98,7 @@ export default function TeslaListingDetailPage() {
 
     const formData = new FormData(e.currentTarget);
     photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
+    orderedPhotos.forEach((photo) => formData.append("photoOrder", photo.id));
 
     const photoFiles = formData.getAll("photos") as File[];
     const photoErrors = validateVehiclePhotoFiles(photoFiles);
@@ -122,44 +147,35 @@ export default function TeslaListingDetailPage() {
     router.refresh();
   }
 
-  const visiblePhotos =
-    vehicle?.photos.filter((photo) => !photosToRemove.includes(photo.id)) ?? [];
-
   if (loading) {
     return (
-      <div className="min-h-screen">
+      <PageShell>
         <LoadingOverlay show label="Loading listing..." />
-        <Header />
-      </div>
+      </PageShell>
     );
   }
 
   if (!vehicle?.id) {
     return (
-      <div className="min-h-screen">
-        <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16">
+      <PageShell>
+        <main className="mx-auto max-w-3xl py-16 text-center">
           <p>Listing not found.</p>
-          <Link href="/tesla/listings" className="text-tesla-red hover:underline">
-            Back to listings
-          </Link>
+          <BackLink href="/tesla/listings" label="Back to listings" className="mt-4" />
         </main>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <PageShell>
       <LoadingOverlay show={saving || removing} label={removing ? "Removing listing..." : "Saving changes..."} />
-      <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/tesla/listings" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to listings
-        </Link>
+
+      <div className={cn(editing && "mx-auto max-w-2xl")}>
+        <BackLink href="/tesla/listings" label="Back to listings" />
 
         <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
+          <div className={cn(editing && "w-full text-center")}>
+            <div className={cn("flex items-center gap-3", editing && "justify-center")}>
               <h1 className="text-3xl font-semibold">
                 {vehicle.year} {vehicle.make} {vehicle.model}
               </h1>
@@ -173,7 +189,7 @@ export default function TeslaListingDetailPage() {
             </p>
           </div>
           {canEdit && !editing && (
-            <Button variant="outline" onClick={() => setEditing(true)}>
+            <Button variant="outline" onClick={startEdit}>
               Edit listing
             </Button>
           )}
@@ -187,44 +203,19 @@ export default function TeslaListingDetailPage() {
           </p>
         )}
 
-        {error && (
-          <p className="mt-4 text-sm text-red-400">{error}</p>
-        )}
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
         {editing ? (
-          <form onSubmit={handleEditSubmit} className="mt-8 max-w-2xl space-y-6">
+          <form onSubmit={handleEditSubmit} className="mt-8 space-y-6">
             <VehicleFormFields defaultValues={vehicle} idPrefix="edit-" showPhotos />
 
-            <div className="space-y-3 rounded-sm border border-border bg-card p-4">
-              <h2 className="font-semibold">Current photos</h2>
-              {visiblePhotos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No photos on this listing.</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {visiblePhotos.map((photo) => (
-                    <div key={photo.id} className="space-y-2">
-                      <div className="relative aspect-[16/10] overflow-hidden rounded-sm bg-muted">
-                        <VehicleImage
-                          src={photo.url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="200px"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setPhotosToRemove((ids) => [...ids, photo.id])}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
+              <h2 className="font-semibold">Photos</h2>
+              <ListingPhotoManager
+                photos={orderedPhotos}
+                onChange={setOrderedPhotos}
+                onRemove={handleRemovePhoto}
+              />
               {photosToRemove.length > 0 && (
                 <p className="text-sm text-muted-foreground">
                   {photosToRemove.length} photo(s) will be removed when you save.
@@ -232,7 +223,7 @@ export default function TeslaListingDetailPage() {
               )}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex justify-center gap-3">
               <Button type="submit" disabled={saving}>
                 {saving ? "Saving..." : "Save changes"}
               </Button>
@@ -260,7 +251,7 @@ export default function TeslaListingDetailPage() {
                 <p className="text-muted-foreground">{vehicle.vehicleNotes}</p>
               </div>
 
-              <div className="rounded-sm border border-border bg-card p-4 space-y-4">
+              <div className="space-y-4 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
                 <h2 className="font-semibold">Manage listing</h2>
 
                 {!canDelete && (
@@ -277,7 +268,7 @@ export default function TeslaListingDetailPage() {
 
                 {canDelete && !showConfirm && (
                   <div className="flex flex-wrap gap-3">
-                    <Button variant="outline" onClick={() => setEditing(true)}>
+                    <Button variant="outline" onClick={startEdit}>
                       Edit listing
                     </Button>
                     <Button variant="destructive" onClick={() => setShowConfirm(true)}>
@@ -306,7 +297,7 @@ export default function TeslaListingDetailPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </PageShell>
   );
 }
