@@ -1,22 +1,40 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp, Star } from "lucide-react";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  formatPhotoSize,
+  MAX_VEHICLE_PHOTO_BYTES,
+  VEHICLE_PHOTO_ACCEPT,
+} from "@/lib/vehicle-photos";
 
 export type ManagedPhoto = {
   id: string;
   url: string;
 };
 
+export type UploadPhoto = {
+  id: string;
+  file: File;
+  previewUrl: string;
+};
+
 type ListingPhotoManagerProps = {
   photos: ManagedPhoto[];
   onChange: (photos: ManagedPhoto[]) => void;
   onRemove: (photoId: string) => void;
+  emptyMessage?: string;
 };
 
-export function ListingPhotoManager({ photos, onChange, onRemove }: ListingPhotoManagerProps) {
+export function ListingPhotoManager({
+  photos,
+  onChange,
+  onRemove,
+  emptyMessage = "No photos on this listing.",
+}: ListingPhotoManagerProps) {
   function movePhoto(index: number, direction: -1 | 1) {
     const nextIndex = index + direction;
     if (nextIndex < 0 || nextIndex >= photos.length) return;
@@ -26,7 +44,7 @@ export function ListingPhotoManager({ photos, onChange, onRemove }: ListingPhoto
   }
 
   if (photos.length === 0) {
-    return <p className="text-sm text-muted-foreground">No photos on this listing.</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
@@ -96,6 +114,77 @@ export function ListingPhotoManager({ photos, onChange, onRemove }: ListingPhoto
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+type ListingPhotoUploadProps = {
+  photos: UploadPhoto[];
+  onChange: (photos: UploadPhoto[]) => void;
+};
+
+export function ListingPhotoUpload({ photos, onChange }: ListingPhotoUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+
+  useEffect(() => {
+    return () => {
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
+    };
+  }, []);
+
+  function handleAdd(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const added = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    onChange([...photos, ...added]);
+    e.target.value = "";
+  }
+
+  function handleRemove(photoId: string) {
+    const photo = photos.find((item) => item.id === photoId);
+    if (photo) {
+      URL.revokeObjectURL(photo.previewUrl);
+    }
+    onChange(photos.filter((item) => item.id !== photoId));
+  }
+
+  function handleReorder(managed: ManagedPhoto[]) {
+    onChange(managed.map((item) => photos.find((photo) => photo.id === item.id)!));
+  }
+
+  return (
+    <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">Photos</h2>
+        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+          Add photos
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept={VEHICLE_PHOTO_ACCEPT}
+          multiple
+          className="hidden"
+          onChange={handleAdd}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        JPEG, PNG, WebP, or GIF. Max {formatPhotoSize(MAX_VEHICLE_PHOTO_BYTES)} per image. If an
+        upload fails, resize or compress large photos and try again.
+      </p>
+      <ListingPhotoManager
+        photos={photos.map((photo) => ({ id: photo.id, url: photo.previewUrl }))}
+        onChange={handleReorder}
+        onRemove={handleRemove}
+        emptyMessage="No photos added yet. Add at least one photo — the first image becomes the cover."
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ type VehicleImageProps = Omit<ImageProps, "src"> & {
 };
 
 export function VehicleImage({ src, alt, className, fill, sizes, priority, loading }: VehicleImageProps) {
-  if (src.startsWith("data:")) {
+  if (src.startsWith("data:") || src.startsWith("blob:")) {
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element

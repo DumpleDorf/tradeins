@@ -7,6 +7,10 @@ import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
+import {
+  ListingPhotoUpload,
+  type UploadPhoto,
+} from "@/components/listing-photo-manager";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
@@ -15,15 +19,15 @@ export default function NewListingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [photos, setPhotos] = useState<UploadPhoto[]>([]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const formData = new FormData(e.currentTarget);
-    const photoFiles = formData.getAll("photos") as File[];
-    if (photoFiles.filter((f) => f.size > 0).length === 0) {
+    const photoFiles = photos.map((photo) => photo.file);
+    if (photoFiles.length === 0) {
       setError("At least one photo is required.");
       setLoading(false);
       return;
@@ -35,6 +39,9 @@ export default function NewListingPage() {
       setLoading(false);
       return;
     }
+
+    const formData = new FormData(e.currentTarget);
+    photoFiles.forEach((file) => formData.append("photos", file));
 
     const res = await fetch("/api/vehicles", { method: "POST", body: formData });
     const data = await res.json();
@@ -60,10 +67,12 @@ export default function NewListingPage() {
         <h1 className="mt-4 text-center text-3xl font-semibold">New Vehicle Listing</h1>
         <Disclaimer variant="listing" />
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          <VehicleFormFields photosRequired />
+          <VehicleFormFields showPhotos={false} />
+
+          <ListingPhotoUpload photos={photos} onChange={setPhotos} />
 
           <div className="flex justify-center">
             <Button type="submit" disabled={loading}>
