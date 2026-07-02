@@ -35,7 +35,7 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <Link href="/login">
+            <Link href="/?signin=1">
               <Button size="sm">Sign In</Button>
             </Link>
           )}

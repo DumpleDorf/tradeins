@@ -8,18 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getDashboardPath } from "@/lib/rbac";
+import { cn } from "@/lib/utils";
 
 type LoginFormProps = {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
+  variant?: "default" | "hero";
+  onCancel?: () => void;
 };
 
-export function LoginForm({ title, subtitle }: LoginFormProps) {
+export function LoginForm({
+  title = "Sign In",
+  subtitle = "Access the Tesla Trade-In Wholesale Portal",
+  variant = "default",
+  onCancel,
+}: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const isHero = variant === "hero";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,19 +62,43 @@ export function LoginForm({ title, subtitle }: LoginFormProps) {
   return (
     <div className="mx-auto w-full max-w-md animate-slide-up">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-2 text-muted-foreground">{subtitle}</p>
+        <h1
+          className={cn(
+            "text-3xl font-semibold tracking-tight",
+            isHero && "hero-text-shadow text-white"
+          )}
+        >
+          {title}
+        </h1>
+        <p
+          className={cn(
+            "mt-2",
+            isHero ? "hero-text-shadow text-white/90" : "text-muted-foreground"
+          )}
+        >
+          {subtitle}
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-sm border border-border bg-card p-6">
+      <form
+        onSubmit={handleSubmit}
+        className={cn(
+          "space-y-4 rounded-sm border p-6",
+          isHero
+            ? "border-white/20 bg-black/40 backdrop-blur-sm"
+            : "border-border bg-card"
+        )}
+      >
         {error && (
-          <div className="rounded-sm bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          <div className="rounded-sm bg-red-500/20 px-3 py-2 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+        <div className="space-y-2 text-left">
+          <Label htmlFor="email" className={isHero ? "text-white" : undefined}>
+            Email
+          </Label>
           <Input
             id="email"
             type="email"
@@ -73,11 +106,14 @@ export function LoginForm({ title, subtitle }: LoginFormProps) {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
+            className={isHero ? "border-white/20 bg-black/30 text-white placeholder:text-white/50" : undefined}
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+        <div className="space-y-2 text-left">
+          <Label htmlFor="password" className={isHero ? "text-white" : undefined}>
+            Password
+          </Label>
           <Input
             id="password"
             type="password"
@@ -85,6 +121,7 @@ export function LoginForm({ title, subtitle }: LoginFormProps) {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
+            className={isHero ? "border-white/20 bg-black/30 text-white placeholder:text-white/50" : undefined}
           />
         </div>
 
@@ -92,11 +129,33 @@ export function LoginForm({ title, subtitle }: LoginFormProps) {
           {loading ? "Signing in..." : "Sign in"}
         </Button>
 
-        <p className="text-center text-sm text-muted-foreground">
-          <Link href="/forgot-password" className="text-tesla-red hover:underline">
+        <p className="text-center text-sm">
+          <Link
+            href="/forgot-password"
+            className={cn(
+              "hover:underline",
+              isHero ? "hero-text-shadow text-white/90 hover:text-white" : "text-tesla-red"
+            )}
+          >
             Forgot password?
           </Link>
         </p>
+
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            className={cn(
+              "w-full",
+              isHero &&
+                "border-white/40 bg-black/30 text-white hover:bg-black/50 hover:text-white"
+            )}
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Back
+          </Button>
+        )}
       </form>
     </div>
   );
