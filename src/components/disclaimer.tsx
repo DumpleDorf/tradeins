@@ -11,7 +11,7 @@ export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "lis
   }
 
   return (
-    <div className="rounded-sm border border-tesla-red/30 bg-tesla-red/5 px-4 py-3 text-sm text-muted-foreground">
+    <div className="rounded-sm border border-tesla-red/30 bg-tesla-red/5 px-4 py-3 text-sm text-muted-foreground backdrop-blur-sm">
       {variant === "listing" ? LISTING_DISCLAIMER : DISCLAIMER}
     </div>
   );

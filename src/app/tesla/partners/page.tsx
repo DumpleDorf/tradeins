@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Header } from "@/components/header";
-import { BackToDashboard } from "@/components/back-to-dashboard";
+import { PageShell } from "@/components/page-shell";
+import { PageHeader } from "@/components/page-header";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,19 +203,19 @@ export default function TeslaPartnersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageShell>
       <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading partners..."} />
-      <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <BackToDashboard />
-        <div className="mt-4 flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">Partner Accounts</h1>
+
+      <PageHeader
+        title="Partner Accounts"
+        action={
           <Button onClick={() => { setShowCreate(true); setEditingId(null); setError(""); }}>
             Add Partner
           </Button>
-        </div>
+        }
+      />
 
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
         {showCreate &&
           renderPartnerForm(
@@ -228,7 +228,7 @@ export default function TeslaPartnersPage() {
 
         <div className="mt-8 space-y-3">
           {partners.map((p) => (
-            <div key={p.id} className="rounded-sm border border-border bg-card p-4">
+            <div key={p.id} className="rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -288,7 +288,6 @@ export default function TeslaPartnersPage() {
             </div>
           ))}
         </div>
-      </main>
-    </div>
+    </PageShell>
   );
 }

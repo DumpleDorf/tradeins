@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getDashboardPath } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
+import { ForgotPasswordInstructions } from "@/components/forgot-password-instructions";
 
 type LoginFormProps = {
   title?: string;
@@ -28,7 +29,17 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const isHero = variant === "hero";
+
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordInstructions
+        variant={variant}
+        onBack={() => setShowForgotPassword(false)}
+      />
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -130,15 +141,19 @@ export function LoginForm({
         </Button>
 
         <p className="text-center text-sm">
-          <Link
-            href="/forgot-password"
-            className={cn(
-              "hover:underline",
-              isHero ? "hero-text-shadow text-white/90 hover:text-white" : "text-tesla-red"
-            )}
-          >
-            Forgot password?
-          </Link>
+          {isHero ? (
+            <button
+              type="button"
+              className="hero-text-shadow text-white/90 hover:text-white hover:underline"
+              onClick={() => setShowForgotPassword(true)}
+            >
+              Forgot password?
+            </button>
+          ) : (
+            <Link href="/forgot-password" className="text-tesla-red hover:underline">
+              Forgot password?
+            </Link>
+          )}
         </p>
 
         {onCancel && (

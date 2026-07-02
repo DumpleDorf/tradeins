@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Header } from "@/components/header";
-import { BackToDashboard } from "@/components/back-to-dashboard";
+import { PageShell } from "@/components/page-shell";
+import { PageHeader } from "@/components/page-header";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,14 +111,12 @@ export default function TeslaReservationsPage() {
     actionType === "approve" ? "Approving reservation..." : "Rejecting reservation...";
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageShell>
       <LoadingOverlay show={loading || actionId !== null} label={actionId ? actionLabel : "Loading reservations..."} />
-      <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <BackToDashboard />
-        <h1 className="mt-4 text-3xl font-semibold">Reservations</h1>
 
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      <PageHeader title="Reservations" />
+
+      {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-md flex-1">
@@ -160,7 +158,7 @@ export default function TeslaReservationsPage() {
             </p>
           ) : (
             filteredReservations.map((r) => (
-              <div key={r.id} className="rounded-sm border border-border bg-card p-4">
+              <div key={r.id} className="animate-stagger-in rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm transition-colors hover:border-tesla-red/30">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
@@ -246,7 +244,6 @@ export default function TeslaReservationsPage() {
             ))
           )}
         </div>
-      </main>
-    </div>
+    </PageShell>
   );
 }

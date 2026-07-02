@@ -26,8 +26,8 @@ export function VehicleCard({ vehicle, href, showStatus }: VehicleCardProps) {
   const imageUrl = vehicle.photos[0]?.url;
 
   return (
-    <Link href={href} className="group block animate-fade-in">
-      <Card className="overflow-hidden group-hover:border-tesla-red/50">
+    <Link href={href} className="group block animate-stagger-in">
+      <Card className="overflow-hidden border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:border-tesla-red/50 group-hover:shadow-lg group-hover:shadow-tesla-red/10">
         <div className="relative aspect-[16/10] overflow-hidden bg-muted">
           {imageUrl ? (
             <VehicleImage

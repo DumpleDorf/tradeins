@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Header } from "@/components/header";
+import { PageShell } from "@/components/page-shell";
+import { PageHeader } from "@/components/page-header";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,21 +187,19 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageShell>
       <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading users..."} />
-      <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/admin" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to admin
-        </Link>
-        <div className="mt-4 flex items-center justify-between">
-          <h1 className="text-3xl font-semibold">User Management</h1>
+
+      <PageHeader
+        title="User Management"
+        action={
           <Button onClick={() => { setShowForm(true); setEditingId(null); setError(""); }}>
             Add Tesla Employee
           </Button>
-        </div>
+        }
+      />
 
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
         {showForm &&
           renderUserForm(
@@ -214,7 +212,7 @@ export default function AdminUsersPage() {
 
         <div className="mt-8 space-y-3">
           {users.map((u) => (
-            <div key={u.id} className="rounded-sm border border-border bg-card p-4">
+            <div key={u.id} className="rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -277,7 +275,6 @@ export default function AdminUsersPage() {
             </div>
           ))}
         </div>
-      </main>
-    </div>
+    </PageShell>
   );
 }
