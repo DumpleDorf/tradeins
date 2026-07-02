@@ -129,9 +129,9 @@ export function InventoryFiltersPanel({
         <div
           role="dialog"
           aria-label="Inventory filters"
-          className="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,22rem)] rounded-sm border border-border/80 bg-card/95 p-5 shadow-2xl backdrop-blur-md animate-slide-up"
+          className="absolute right-0 z-50 mt-2 flex w-[min(100vw-2rem,24rem)] max-h-[min(70vh,36rem)] flex-col overflow-hidden rounded-sm border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md animate-slide-up"
         >
-          <div className="mb-4 flex items-center justify-between">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-5 py-4">
             <h2 className="font-semibold">Filters</h2>
             <button
               type="button"
@@ -143,7 +143,8 @@ export function InventoryFiltersPanel({
             </button>
           </div>
 
-          <div className="max-h-[min(70vh,32rem)] space-y-5 overflow-y-auto pr-1">
+          <div className="filter-panel-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div className="space-y-6 pr-1">
             <div className="space-y-2">
               <Label htmlFor="filter-make">Make</Label>
               <select
@@ -245,9 +246,10 @@ export function InventoryFiltersPanel({
                 ))}
               </select>
             </div>
+            </div>
           </div>
 
-          <div className="mt-5 flex gap-2 border-t border-border/60 pt-4">
+          <div className="flex shrink-0 gap-2 border-t border-border/50 bg-card/95 px-5 py-4">
             <Button className="flex-1" onClick={onApply}>
               Apply filters
             </Button>

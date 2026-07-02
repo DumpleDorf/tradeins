@@ -107,6 +107,34 @@ body {
     animation: loadingDotPulse 1.4s ease-in-out infinite;
   }
 
+  .filter-panel-scroll {
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(227, 25, 55, 0.5) rgba(255, 255, 255, 0.06);
+  }
+
+  .filter-panel-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .filter-panel-scroll::-webkit-scrollbar-track {
+    margin: 6px 0;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .filter-panel-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.18);
+    background-clip: padding-box;
+  }
+
+  .filter-panel-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(227, 25, 55, 0.65);
+    background-clip: padding-box;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .app-bg-topo-layer-a,
     .app-bg-topo-layer-b {

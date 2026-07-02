@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { Header } from "@/components/header";
@@ -90,7 +90,8 @@ function filtersToParams(
 
 export default function InventoryPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -111,6 +112,7 @@ export default function InventoryPage() {
   );
   const metaRef = useRef(meta);
   metaRef.current = meta;
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("inventory-view-mode");
@@ -121,16 +123,13 @@ export default function InventoryPage() {
     window.localStorage.setItem("inventory-view-mode", viewMode);
   }, [viewMode]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
-
   const fetchInventory = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setInitialLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
     const params = filtersToParams(appliedFilters, metaRef.current, sort, search, page);
 
     const res = await fetch(`/api/inventory?${params}`);
@@ -149,8 +148,22 @@ export default function InventoryPage() {
       }
     }
 
-    setLoading(false);
+    hasLoadedRef.current = true;
+    setInitialLoading(false);
+    setRefreshing(false);
   }, [appliedFilters, sort, search, page, metaReady]);
+
+  function applySearch() {
+    setPage(1);
+    setSearch(searchInput.trim());
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      applySearch();
+    }
+  }
 
   useEffect(() => {
     fetchInventory();
@@ -179,9 +192,18 @@ export default function InventoryPage() {
     setFiltersOpen(false);
   }
 
+  function clearSearchAndFilters() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+    clearFilters();
+  }
+
+  const searchPending = searchInput.trim() !== search.trim();
+
   return (
     <div className="min-h-screen">
-      <LoadingOverlay show={loading} label="Loading inventory..." />
+      <LoadingOverlay show={initialLoading} label="Loading inventory..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -204,15 +226,33 @@ export default function InventoryPage() {
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search by make, model, trim, rego, or year..."
-              className="h-11 border-border/80 bg-card/80 pl-10 backdrop-blur-sm"
+              className="h-11 border-border/80 bg-card/80 pl-10 pr-24 backdrop-blur-sm"
               aria-label="Search inventory"
             />
+            <Button
+              type="button"
+              size="sm"
+              className="absolute right-1.5 top-1/2 h-8 -translate-y-1/2 px-3"
+              onClick={applySearch}
+              disabled={refreshing}
+            >
+              Search
+            </Button>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              {loading ? "Searching..." : `${total} vehicle${total === 1 ? "" : "s"} found`}
+              {refreshing
+                ? "Updating results..."
+                : `${total} vehicle${total === 1 ? "" : "s"} found`}
+              {search && (
+                <span className="ml-2 text-foreground/80">· &ldquo;{search}&rdquo;</span>
+              )}
+              {searchPending && (
+                <span className="ml-2 text-tesla-red">· Press Search to apply</span>
+              )}
               {activeFilterCount > 0 && (
                 <span className="ml-2 text-tesla-red">
                   · {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} active
@@ -287,28 +327,29 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <div className="mt-8">
-          {!loading && vehicles.length === 0 ? (
+        <div className={cn("mt-8 transition-opacity duration-200", refreshing && "opacity-60")}>
+          {!initialLoading && !refreshing && vehicles.length === 0 ? (
             <div className="rounded-sm border border-border/80 bg-card/80 p-10 text-center backdrop-blur-sm">
               <p className="text-muted-foreground">No vehicles match your search or filters.</p>
               {(search || activeFilterCount > 0) && (
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onClick={() => {
-                    setSearchInput("");
-                    setSearch("");
-                    clearFilters();
-                  }}
+                  onClick={clearSearchAndFilters}
                 >
                   Clear search and filters
                 </Button>
               )}
             </div>
           ) : viewMode === "grid" ? (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {vehicles.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} href={`/vehicles/${vehicle.id}`} />
+                <VehicleCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  href={`/vehicles/${vehicle.id}`}
+                  compact
+                />
               ))}
             </div>
           ) : (
