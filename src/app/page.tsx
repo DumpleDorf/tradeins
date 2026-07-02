@@ -20,15 +20,10 @@ export default function HomePage() {
             browse inventory and reserve vehicles for purchase.
           </p>
 
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/login/partner">
+          <div className="mt-10 flex items-center justify-center">
+            <Link href="/login">
               <Button size="lg" className="min-w-[200px]">
-                Partner Login
-              </Button>
-            </Link>
-            <Link href="/login/tesla">
-              <Button size="lg" variant="outline" className="min-w-[200px]">
-                Tesla Employee Login
+                Sign In
               </Button>
             </Link>
           </div>

@@ -36,33 +36,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        loginType: { label: "Login Type", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
-        const loginType = credentials?.loginType as "tesla" | "partner" | undefined;
 
-        if (!email || !password || !loginType) return null;
+        if (!email || !password) return null;
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },
-          include: { partnerProfile: true },
         });
 
         if (!user || user.status !== UserStatus.ACTIVE) return null;
-
-        const isPartnerLogin = loginType === "partner";
-        const isTeslaLogin = loginType === "tesla";
-
-        if (isPartnerLogin && user.role !== UserRole.PARTNER) return null;
-        if (
-          isTeslaLogin &&
-          user.role !== UserRole.TESLA_EMPLOYEE &&
-          user.role !== UserRole.SUPER_ADMIN
-        ) {
-          return null;
-        }
 
         const valid = await verifyPassword(password, user.passwordHash);
         if (!valid) return null;

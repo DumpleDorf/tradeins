@@ -34,16 +34,9 @@ export function Header() {
               </Button>
             </>
           ) : (
-            <>
-              <Link href="/login/partner">
-                <Button variant="ghost" size="sm">
-                  Partner Login
-                </Button>
-              </Link>
-              <Link href="/login/tesla">
-                <Button size="sm">Tesla Login</Button>
-              </Link>
-            </>
+            <Link href="/login">
+              <Button size="sm">Sign In</Button>
+            </Link>
           )}
         </nav>
       </div>

@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    router.push("/login/partner");
+    router.push("/login");
   }
 
   if (!token) {
@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
           <ResetPasswordForm />
         </Suspense>
         <p className="mt-4 text-center text-sm">
-          <Link href="/login/partner" className="text-tesla-red hover:underline">
+          <Link href="/login" className="text-tesla-red hover:underline">
             Back to login
           </Link>
         </p>

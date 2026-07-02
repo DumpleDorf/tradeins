@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,11 @@ import { Label } from "@/components/ui/label";
 import { getDashboardPath } from "@/lib/rbac";
 
 type LoginFormProps = {
-  loginType: "tesla" | "partner";
   title: string;
   subtitle: string;
 };
 
-export function LoginForm({ loginType, title, subtitle }: LoginFormProps) {
+export function LoginForm({ title, subtitle }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +29,6 @@ export function LoginForm({ loginType, title, subtitle }: LoginFormProps) {
     const result = await signIn("credentials", {
       email,
       password,
-      loginType,
       redirect: false,
     });
 
@@ -40,7 +39,13 @@ export function LoginForm({ loginType, title, subtitle }: LoginFormProps) {
     }
 
     const session = await getSession();
-    const role = session?.user?.role ?? (loginType === "partner" ? "PARTNER" : "TESLA_EMPLOYEE");
+    const role = session?.user?.role;
+    if (!role) {
+      setError("Invalid email or password");
+      setLoading(false);
+      return;
+    }
+
     router.push(getDashboardPath(role));
     router.refresh();
   }
@@ -86,6 +91,12 @@ export function LoginForm({ loginType, title, subtitle }: LoginFormProps) {
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Signing in..." : "Sign in"}
         </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          <Link href="/forgot-password" className="text-tesla-red hover:underline">
+            Forgot password?
+          </Link>
+        </p>
       </form>
     </div>
   );

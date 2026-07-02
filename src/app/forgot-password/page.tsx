@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
         </form>
         <p className="mt-4 text-center text-sm">
-          <Link href="/login/partner" className="text-tesla-red hover:underline">
+          <Link href="/login" className="text-tesla-red hover:underline">
             Back to login
           </Link>
         </p>

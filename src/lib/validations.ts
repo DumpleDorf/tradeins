@@ -49,6 +49,13 @@ export const teslaUserSchema = z.object({
   password: z.string().min(8).optional(),
 });
 
+export const adminUserUpdateSchema = z.object({
+  email: z.string().email().optional(),
+  name: z.string().min(1).optional(),
+  password: z.string().min(8).optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+});
+
 export const rejectSchema = z.object({
   reason: z.string().min(1).max(1000),
 });

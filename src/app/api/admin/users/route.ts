@@ -14,9 +14,6 @@ export async function GET() {
   }
 
   const users = await prisma.user.findMany({
-    where: {
-      role: { in: [UserRole.SUPER_ADMIN, UserRole.TESLA_EMPLOYEE] },
-    },
     select: {
       id: true,
       email: true,
@@ -24,8 +21,11 @@ export async function GET() {
       role: true,
       status: true,
       createdAt: true,
+      partnerProfile: {
+        select: { companyName: true },
+      },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ role: "asc" }, { createdAt: "desc" }],
   });
 
   return NextResponse.json(users);
@@ -46,6 +46,13 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.data.password) {
       return NextResponse.json({ error: "Password required" }, { status: 400 });
+    }
+
+    const existing = await prisma.user.findUnique({
+      where: { email: parsed.data.email.toLowerCase() },
+    });
+    if (existing) {
+      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
 
     const user = await prisma.user.create({
