@@ -9,8 +9,21 @@ import { VehicleCard } from "@/components/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { Disclaimer } from "@/components/disclaimer";
 
+type ListingVehicle = {
+  id: string;
+  year: number;
+  make: string;
+  model: string;
+  trim: string;
+  odometer: number;
+  price: number;
+  licensePlateNumber: string;
+  status?: string;
+  photos: { url: string }[];
+};
+
 export default function TeslaListingsPage() {
-  const [vehicles, setVehicles] = useState([]);
+  const [vehicles, setVehicles] = useState<ListingVehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,10 +56,10 @@ export default function TeslaListingsPage() {
           <p className="mt-8 text-muted-foreground">No listings yet.</p>
         ) : (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {vehicles.map((vehicle: { id: string }) => (
+            {vehicles.map((vehicle) => (
               <VehicleCard
                 key={vehicle.id}
-                vehicle={vehicle as never}
+                vehicle={vehicle}
                 href={`/tesla/listings/${vehicle.id}`}
                 showStatus
               />
