@@ -4,7 +4,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
-import { vehicleSchema } from "@/lib/validations";
+import { queryVehicleBrowse } from "@/lib/vehicle-browse-query";
+import { inventoryFiltersSchema, vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhotos } from "@/lib/storage";
 
 export async function GET(request: NextRequest) {
@@ -15,6 +16,20 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const isPartnerView = session.user.role === "PARTNER";
+
+  if (canManageListings(session.user)) {
+    const rawParams = Object.fromEntries(searchParams);
+    const params = Object.fromEntries(
+      Object.entries(rawParams).filter(([, value]) => value !== "")
+    );
+    const parsed = inventoryFiltersSchema.safeParse(params);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
+    }
+
+    const result = await queryVehicleBrowse(parsed.data, {}, {});
+    return NextResponse.json(result);
+  }
 
   const where: Prisma.VehicleWhereInput = isPartnerView
     ? { status: VehicleStatus.AVAILABLE }
