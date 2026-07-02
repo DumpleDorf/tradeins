@@ -51,28 +51,153 @@ body {
     background: linear-gradient(165deg, #171a20 0%, #12141a 42%, #0a0b0f 100%);
   }
 
-  .app-bg-topo-layer {
-    opacity: 0.9;
-    animation: topoDrift 48s ease-in-out infinite alternate;
+  .app-bg-topo-layer-a {
+    opacity: 1;
+    animation: topoDriftA 26s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+    will-change: transform;
+  }
+
+  .app-bg-topo-layer-b {
+    opacity: 0.55;
+    animation: topoDriftB 34s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate-reverse;
     will-change: transform;
   }
 
   .app-bg-topo-fade {
-    background: radial-gradient(ellipse 85% 75% at 50% 35%, transparent 30%, #0a0b0f 88%);
+    background: radial-gradient(ellipse 85% 75% at 50% 35%, transparent 28%, #0a0b0f 86%);
+  }
+
+  .loading-overlay-backdrop {
+    background: rgba(10, 11, 15, 0.55);
+    backdrop-filter: blur(6px);
+    animation: loadingBackdropIn 0.28s ease-out both;
+  }
+
+  .loading-overlay-panel {
+    animation: loadingPanelIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+    box-shadow:
+      0 0 0 1px rgba(227, 25, 55, 0.08),
+      0 16px 48px rgba(0, 0, 0, 0.45);
+  }
+
+  .loading-overlay-label {
+    animation: loadingLabelPulse 2.2s ease-in-out infinite;
+  }
+
+  .loading-spinner {
+    position: relative;
+  }
+
+  .loading-spinner-orbit {
+    border-top-color: rgba(227, 25, 55, 0.95);
+    border-right-color: rgba(227, 25, 55, 0.35);
+    animation: loadingOrbit 0.95s cubic-bezier(0.5, 0.1, 0.3, 1) infinite;
+  }
+
+  .loading-spinner-orbit--reverse {
+    border-top-color: rgba(255, 255, 255, 0.55);
+    border-right-color: rgba(255, 255, 255, 0.12);
+    animation: loadingOrbitReverse 1.35s cubic-bezier(0.5, 0.1, 0.3, 1) infinite;
+  }
+
+  .loading-spinner-dot {
+    background: #e31937;
+    box-shadow: 0 0 10px rgba(227, 25, 55, 0.65);
+    transform: translate(-50%, -50%);
+    animation: loadingDotPulse 1.4s ease-in-out infinite;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .app-bg-topo-layer {
+    .app-bg-topo-layer-a,
+    .app-bg-topo-layer-b {
+      animation: none;
+    }
+
+    .loading-overlay-backdrop,
+    .loading-overlay-panel,
+    .loading-overlay-label,
+    .loading-spinner-orbit,
+    .loading-spinner-orbit--reverse,
+    .loading-spinner-dot {
       animation: none;
     }
   }
 }
 
-@keyframes topoDrift {
+@keyframes topoDriftA {
   0% {
-    transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate(-1.8%, 1.2%) scale(1.025) rotate(0.15deg);
   }
   100% {
-    transform: translate(-2.5%, -1.5%) scale(1.03);
+    transform: translate(-3.5%, -2%) scale(1.045) rotate(0deg);
+  }
+}
+
+@keyframes topoDriftB {
+  0% {
+    transform: translate(0, 0) scale(1.02);
+  }
+  50% {
+    transform: translate(2%, -1%) scale(1.04);
+  }
+  100% {
+    transform: translate(3%, 1.8%) scale(1.055);
+  }
+}
+
+@keyframes loadingBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loadingPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes loadingOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loadingOrbitReverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes loadingDotPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(0.82);
+    opacity: 0.7;
+  }
+}
+
+@keyframes loadingLabelPulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
   }
 }

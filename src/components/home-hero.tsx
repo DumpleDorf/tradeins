@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingSpinner } from "@/components/loading-overlay";
 import { LoginForm } from "@/components/login-form";
 import { Button } from "@/components/ui/button";
 import { getDashboardPath } from "@/lib/rbac";
@@ -40,7 +41,10 @@ export function HomeHero() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-20">
         {status === "loading" ? (
-          <p className="hero-text-shadow text-sm text-white/70">Loading...</p>
+          <div className="flex flex-col items-center gap-3">
+            <LoadingSpinner size="sm" />
+            <p className="hero-text-shadow text-sm text-white/70">Loading...</p>
+          </div>
         ) : showLogin && !isLoggedIn ? (
           <LoginForm
             variant="hero"

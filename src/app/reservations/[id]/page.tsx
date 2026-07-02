@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/header";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
@@ -37,7 +38,7 @@ export default function ReservationDetailPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16 text-muted-foreground">Loading...</main>
+        <LoadingOverlay show label="Loading reservation..." />
       </div>
     );
   }
