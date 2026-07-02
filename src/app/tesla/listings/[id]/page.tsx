@@ -127,7 +127,7 @@ export default function TeslaListingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <LoadingOverlay show label="Loading listing..." />
         <Header />
       </div>
@@ -136,7 +136,7 @@ export default function TeslaListingDetailPage() {
 
   if (!vehicle?.id) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-16">
           <p>Listing not found.</p>
@@ -149,7 +149,7 @@ export default function TeslaListingDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <LoadingOverlay show={saving || removing} label={removing ? "Removing listing..." : "Saving changes..."} />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">

@@ -35,7 +35,7 @@ export default function ReservationDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-16 text-muted-foreground">Loading...</main>
       </div>
@@ -44,7 +44,7 @@ export default function ReservationDetailPage() {
 
   if (!reservation?.id || !reservation.vehicle?.id) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-16">
           <p>Reservation not found.</p>
@@ -59,7 +59,7 @@ export default function ReservationDetailPage() {
   const { vehicle } = reservation;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <Link href="/reservations" className="text-sm text-muted-foreground hover:text-tesla-red">

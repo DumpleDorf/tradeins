@@ -53,7 +53,7 @@ export default function NewListingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <LoadingOverlay show={loading} label="Creating listing..." />
       <Header />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">

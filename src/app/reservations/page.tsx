@@ -37,7 +37,7 @@ export default function ReservationsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <LoadingOverlay show={loading} label="Loading reservations..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">

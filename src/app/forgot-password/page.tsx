@@ -3,7 +3,7 @@ import { ForgotPasswordInstructions } from "@/components/forgot-password-instruc
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-md px-4 py-16">
         <ForgotPasswordInstructions />

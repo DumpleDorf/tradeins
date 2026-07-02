@@ -81,7 +81,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-md px-4 py-16">
         <h1 className="mb-6 text-2xl font-semibold">Set New Password</h1>

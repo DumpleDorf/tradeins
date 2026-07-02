@@ -50,7 +50,7 @@ export default function VehicleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <LoadingOverlay show label="Loading vehicle..." />
         <Header />
       </div>
@@ -59,7 +59,7 @@ export default function VehicleDetailPage() {
 
   if (!vehicle?.id) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen">
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-16">Vehicle not found.</main>
       </div>
@@ -67,7 +67,7 @@ export default function VehicleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <LoadingOverlay show={reserving} label="Reserving vehicle..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
