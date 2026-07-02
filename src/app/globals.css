@@ -134,6 +134,28 @@ body {
     background-clip: padding-box;
   }
 
+  .brand-title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+  }
+
+  .brand-title-word {
+    display: block;
+    line-height: 1;
+  }
+
+  .brand-title-trade {
+    color: #e31937;
+    position: relative;
+    top: 0.12em;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .app-bg-topo-layer-a,
     .app-bg-topo-layer-b {
