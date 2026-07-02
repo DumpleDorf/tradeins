@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { Button } from "@/components/ui/button";
 import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
@@ -50,8 +51,8 @@ export default function VehicleDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
+        <LoadingOverlay show label="Loading vehicle..." />
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16 text-muted-foreground">Loading...</main>
       </div>
     );
   }
@@ -67,6 +68,7 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={reserving} label="Reserving vehicle..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <Disclaimer />

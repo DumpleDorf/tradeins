@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Header } from "@/components/header";
+import { BackToDashboard } from "@/components/back-to-dashboard";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,12 +31,19 @@ const partnerFields = [
 
 export default function TeslaPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  function load() {
-    fetch("/api/partners").then((r) => r.json()).then(setPartners);
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/partners");
+    const data = await res.json();
+    setPartners(Array.isArray(data) ? data : []);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -46,6 +54,7 @@ export default function TeslaPartnersPage() {
     e.preventDefault();
     setError("");
 
+    setBusy(true);
     const formData = new FormData(e.currentTarget);
     const res = await fetch("/api/partners", {
       method: "POST",
@@ -56,11 +65,13 @@ export default function TeslaPartnersPage() {
 
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Failed to create partner");
+      setBusy(false);
       return;
     }
 
     setShowCreate(false);
     (e.target as HTMLFormElement).reset();
+    setBusy(false);
     load();
   }
 
@@ -68,6 +79,7 @@ export default function TeslaPartnersPage() {
     e.preventDefault();
     setError("");
 
+    setBusy(true);
     const formData = new FormData(e.currentTarget);
     const payload = Object.fromEntries(formData.entries());
 
@@ -84,15 +96,18 @@ export default function TeslaPartnersPage() {
 
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Failed to update partner");
+      setBusy(false);
       return;
     }
 
     setEditingId(null);
+    setBusy(false);
     load();
   }
 
   async function setPartnerStatus(id: string, status: "ACTIVE" | "INACTIVE") {
     setError("");
+    setBusy(true);
     const res = await fetch(`/api/partners/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -102,9 +117,29 @@ export default function TeslaPartnersPage() {
     if (!res.ok) {
       const data = await res.json();
       setError(typeof data.error === "string" ? data.error : "Failed to update partner status");
+      setBusy(false);
       return;
     }
 
+    setBusy(false);
+    load();
+  }
+
+  async function handleDelete(id: string) {
+    setError("");
+    setBusy(true);
+    const res = await fetch(`/api/partners/${id}`, { method: "DELETE" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(typeof data.error === "string" ? data.error : "Failed to delete partner");
+      setBusy(false);
+      setDeletingId(null);
+      return;
+    }
+
+    setDeletingId(null);
+    setBusy(false);
     load();
   }
 
@@ -169,11 +204,10 @@ export default function TeslaPartnersPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading partners..."} />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/tesla" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to dashboard
-        </Link>
+        <BackToDashboard />
         <div className="mt-4 flex items-center justify-between">
           <h1 className="text-3xl font-semibold">Partner Accounts</h1>
           <Button onClick={() => { setShowCreate(true); setEditingId(null); setError(""); }}>
@@ -218,12 +252,26 @@ export default function TeslaPartnersPage() {
                     {editingId === p.id ? "Close" : "Edit"}
                   </Button>
                   {p.status === "ACTIVE" ? (
-                    <Button size="sm" variant="outline" onClick={() => setPartnerStatus(p.id, "INACTIVE")}>
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setPartnerStatus(p.id, "INACTIVE")}>
                       Deactivate
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => setPartnerStatus(p.id, "ACTIVE")}>
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setPartnerStatus(p.id, "ACTIVE")}>
                       Activate
+                    </Button>
+                  )}
+                  {deletingId === p.id ? (
+                    <>
+                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => handleDelete(p.id)}>
+                        Confirm Delete
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeletingId(null)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="destructive" disabled={busy} onClick={() => setDeletingId(p.id)}>
+                      Delete
                     </Button>
                   )}
                 </div>

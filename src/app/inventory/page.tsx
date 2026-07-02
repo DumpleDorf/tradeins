@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleCard } from "@/components/vehicle-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,7 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading} label="Loading inventory..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -128,9 +130,7 @@ export default function InventoryPage() {
           </aside>
 
           <div className="lg:col-span-3">
-            {loading ? (
-              <p className="text-muted-foreground">Loading inventory...</p>
-            ) : vehicles.length === 0 ? (
+            {loading ? null : vehicles.length === 0 ? (
               <p className="text-muted-foreground">No vehicles match your filters.</p>
             ) : (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

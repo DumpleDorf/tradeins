@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +20,19 @@ type User = {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  function load() {
-    fetch("/api/admin/users").then((r) => r.json()).then(setUsers);
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/admin/users");
+    const data = await res.json();
+    setUsers(Array.isArray(data) ? data : []);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -34,6 +42,7 @@ export default function AdminUsersPage() {
   async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setBusy(true);
 
     const formData = new FormData(e.currentTarget);
     const res = await fetch("/api/admin/users", {
@@ -45,17 +54,20 @@ export default function AdminUsersPage() {
 
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Failed to create user");
+      setBusy(false);
       return;
     }
 
     setShowForm(false);
     (e.target as HTMLFormElement).reset();
+    setBusy(false);
     load();
   }
 
   async function handleEdit(e: React.FormEvent<HTMLFormElement>, user: User) {
     e.preventDefault();
     setError("");
+    setBusy(true);
 
     const formData = new FormData(e.currentTarget);
     const payload = Object.fromEntries(formData.entries());
@@ -73,15 +85,18 @@ export default function AdminUsersPage() {
 
     if (!res.ok) {
       setError(typeof data.error === "string" ? data.error : "Failed to update user");
+      setBusy(false);
       return;
     }
 
     setEditingId(null);
+    setBusy(false);
     load();
   }
 
   async function setUserStatus(id: string, status: "ACTIVE" | "INACTIVE") {
     setError("");
+    setBusy(true);
     const res = await fetch(`/api/admin/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -91,9 +106,29 @@ export default function AdminUsersPage() {
     if (!res.ok) {
       const data = await res.json();
       setError(typeof data.error === "string" ? data.error : "Failed to update user status");
+      setBusy(false);
       return;
     }
 
+    setBusy(false);
+    load();
+  }
+
+  async function handleDelete(id: string) {
+    setError("");
+    setBusy(true);
+    const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(typeof data.error === "string" ? data.error : "Failed to delete user");
+      setBusy(false);
+      setDeletingId(null);
+      return;
+    }
+
+    setDeletingId(null);
+    setBusy(false);
     load();
   }
 
@@ -142,8 +177,8 @@ export default function AdminUsersPage() {
           />
         </div>
         <div className="flex gap-2 sm:col-span-2">
-          <Button type="submit">{submitLabel}</Button>
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="submit" disabled={busy}>{submitLabel}</Button>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
         </div>
@@ -153,6 +188,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading users..."} />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-tesla-red">
@@ -191,10 +227,11 @@ export default function AdminUsersPage() {
                     {u.partnerProfile?.companyName ? ` · ${u.partnerProfile.companyName}` : ""}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="outline"
+                    disabled={busy}
                     onClick={() => {
                       setEditingId(editingId === u.id ? null : u.id);
                       setShowForm(false);
@@ -204,12 +241,26 @@ export default function AdminUsersPage() {
                     {editingId === u.id ? "Close" : "Edit"}
                   </Button>
                   {u.status === "ACTIVE" ? (
-                    <Button size="sm" variant="outline" onClick={() => setUserStatus(u.id, "INACTIVE")}>
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setUserStatus(u.id, "INACTIVE")}>
                       Deactivate
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => setUserStatus(u.id, "ACTIVE")}>
+                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setUserStatus(u.id, "ACTIVE")}>
                       Activate
+                    </Button>
+                  )}
+                  {deletingId === u.id ? (
+                    <>
+                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => handleDelete(u.id)}>
+                        Confirm Delete
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeletingId(null)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button size="sm" variant="destructive" disabled={busy} onClick={() => setDeletingId(u.id)}>
+                      Delete
                     </Button>
                   )}
                 </div>

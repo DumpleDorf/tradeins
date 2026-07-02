@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManageUsers } from "@/lib/rbac";
 import { teslaUserSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/password";
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "TESLA_USER_CREATED",
       entityType: "User",

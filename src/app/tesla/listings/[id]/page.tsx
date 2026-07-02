@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer, StatusBadge } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { PhotoGallery } from "@/components/photo-gallery";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { VehicleImage } from "@/components/vehicle-image";
@@ -127,8 +128,8 @@ export default function TeslaListingDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
+        <LoadingOverlay show label="Loading listing..." />
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-16 text-muted-foreground">Loading...</main>
       </div>
     );
   }
@@ -149,6 +150,7 @@ export default function TeslaListingDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={saving || removing} label={removing ? "Removing listing..." : "Saving changes..."} />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <Link href="/tesla/listings" className="text-sm text-muted-foreground hover:text-tesla-red">

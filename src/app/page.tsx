@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { Header } from "@/components/header";
-import { Button } from "@/components/ui/button";
 import { Disclaimer } from "@/components/disclaimer";
+import { HomeCta } from "@/components/home-cta";
 
 export default function HomePage() {
   return (
@@ -20,13 +19,7 @@ export default function HomePage() {
             browse inventory and reserve vehicles for purchase.
           </p>
 
-          <div className="mt-10 flex items-center justify-center">
-            <Link href="/login">
-              <Button size="lg" className="min-w-[200px]">
-                Sign In
-              </Button>
-            </Link>
-          </div>
+          <HomeCta />
 
           <div className="mx-auto mt-12 max-w-lg">
             <Disclaimer />

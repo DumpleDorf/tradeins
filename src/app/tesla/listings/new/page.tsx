@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
@@ -22,6 +23,12 @@ export default function NewListingPage() {
 
     const formData = new FormData(e.currentTarget);
     const photoFiles = formData.getAll("photos") as File[];
+    if (photoFiles.filter((f) => f.size > 0).length === 0) {
+      setError("At least one photo is required.");
+      setLoading(false);
+      return;
+    }
+
     const photoErrors = validateVehiclePhotoFiles(photoFiles);
     if (photoErrors.length > 0) {
       setError(photoErrors.join(" "));
@@ -47,6 +54,7 @@ export default function NewListingPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading} label="Creating listing..." />
       <Header />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <Link href="/tesla/listings" className="text-sm text-muted-foreground hover:text-tesla-red">
@@ -58,7 +66,7 @@ export default function NewListingPage() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          <VehicleFormFields photosRequired={false} />
+          <VehicleFormFields photosRequired />
 
           <Button type="submit" disabled={loading}>
             {loading ? "Creating..." : "Create Listing"}

@@ -42,6 +42,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id!;
         token.role = user.role;
+        token.displayName = user.displayName;
       }
       return token;
     },
@@ -49,6 +50,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.displayName = token.displayName;
       }
       return session;
     },

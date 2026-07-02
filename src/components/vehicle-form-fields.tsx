@@ -154,9 +154,7 @@ export function VehicleFormFields({
       </div>
       {showPhotos && (
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor={fieldId("photos")}>
-            {photosRequired ? "Photos" : "Add photos (optional)"}
-          </Label>
+          <Label htmlFor={fieldId("photos")}>Photos</Label>
           <Input
             id={fieldId("photos")}
             name="photos"

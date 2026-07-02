@@ -7,6 +7,7 @@ import { getDashboardPath } from "@/lib/rbac";
 
 export function Header() {
   const { data: session } = useSession();
+  const displayName = session?.user?.displayName ?? session?.user?.name;
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
@@ -27,7 +28,7 @@ export function Header() {
                 Dashboard
               </Link>
               <span className="hidden text-sm text-muted-foreground sm:inline">
-                {session.user.name}
+                Logged in as {displayName}
               </span>
               <Button variant="outline" size="sm" onClick={() => signOut({ callbackUrl: "/" })}>
                 Sign out

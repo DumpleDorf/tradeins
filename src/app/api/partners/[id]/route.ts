@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManagePartners } from "@/lib/rbac";
 import { partnerUpdateSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/password";
@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     include: { partnerProfile: true },
   });
 
-  await createAuditLog({
+  logAudit({
     actorId: session.user.id,
     action: "PARTNER_UPDATED",
     entityType: "User",
@@ -71,4 +71,37 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   });
 
   return NextResponse.json(partner);
+}
+
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  const session = await auth();
+
+  if (!session?.user || !canManagePartners(session.user)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id, role: "PARTNER" },
+    select: { id: true, email: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.deleteMany({ where: { partnerId: id } });
+    await tx.user.delete({ where: { id } });
+  });
+
+  logAudit({
+    actorId: session.user.id,
+    action: "PARTNER_DELETED",
+    entityType: "User",
+    entityId: id,
+    metadata: { email: existing.email },
+  });
+
+  return NextResponse.json({ success: true });
 }

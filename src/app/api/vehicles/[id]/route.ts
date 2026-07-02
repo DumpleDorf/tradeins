@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhotos } from "@/lib/storage";
@@ -130,7 +130,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       });
     }
 
-    await createAuditLog({
+    const photoCount = await prisma.vehiclePhoto.count({ where: { vehicleId: id } });
+    if (photoCount === 0) {
+      return NextResponse.json(
+        { error: "At least one photo is required on every listing" },
+        { status: 400 }
+      );
+    }
+
+    logAudit({
       actorId: session.user.id,
       action: "VEHICLE_UPDATED",
       entityType: "Vehicle",
@@ -168,7 +176,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
 
   await prisma.vehicle.delete({ where: { id } });
 
-  await createAuditLog({
+  logAudit({
     actorId: session.user.id,
     action: "VEHICLE_DELETED",
     entityType: "Vehicle",

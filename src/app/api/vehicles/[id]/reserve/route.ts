@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canReserveVehicles } from "@/lib/rbac";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -52,7 +52,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
       return { vehicle: updatedVehicle, reservation };
     });
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "VEHICLE_RESERVED",
       entityType: "Reservation",

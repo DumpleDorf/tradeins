@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { Disclaimer } from "@/components/disclaimer";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { StatusBadge } from "@/components/disclaimer";
 
 type Reservation = {
@@ -37,6 +38,7 @@ export default function ReservationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading} label="Loading reservations..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex items-center justify-between">
@@ -49,9 +51,7 @@ export default function ReservationsPage() {
         <Disclaimer />
 
         <div className="mt-8 space-y-4">
-          {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
-          ) : reservations.length === 0 ? (
+          {!loading && reservations.length === 0 ? (
             <p className="text-muted-foreground">You have no reservations yet.</p>
           ) : (
             reservations.map((r) => (

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Header } from "@/components/header";
+import { BackToDashboard } from "@/components/back-to-dashboard";
+import { LoadingOverlay } from "@/components/loading-overlay";
 
 type AuditEntry = {
   id: string;
@@ -15,18 +16,23 @@ type AuditEntry = {
 
 export default function TeslaAuditPage() {
   const [logs, setLogs] = useState<AuditEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/audit").then((r) => r.json()).then(setLogs);
+    fetch("/api/audit")
+      .then((r) => r.json())
+      .then((data) => {
+        setLogs(Array.isArray(data) ? data : []);
+        setLoading(false);
+      });
   }, []);
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading} label="Loading audit log..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/tesla" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to dashboard
-        </Link>
+        <BackToDashboard />
         <h1 className="mt-4 text-3xl font-semibold">Audit Log</h1>
 
         <div className="mt-8 overflow-x-auto">

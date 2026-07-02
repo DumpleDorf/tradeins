@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canApproveReservations } from "@/lib/rbac";
 import { rejectSchema } from "@/lib/validations";
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return res;
     });
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "RESERVATION_APPROVED",
       entityType: "Reservation",
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return res;
     });
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "RESERVATION_REJECTED",
       entityType: "Reservation",

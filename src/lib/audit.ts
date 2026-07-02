@@ -20,3 +20,8 @@ export async function createAuditLog(params: AuditParams) {
     },
   });
 }
+
+/** Write audit log without blocking the API response. */
+export function logAudit(params: AuditParams) {
+  void createAuditLog(params).catch((err) => console.error("[audit]", err));
+}

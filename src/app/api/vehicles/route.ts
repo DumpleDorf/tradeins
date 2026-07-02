@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma, VehicleStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhotos } from "@/lib/storage";
@@ -29,22 +29,6 @@ export async function GET(request: NextRequest) {
     where,
     include: {
       photos: { orderBy: { sortOrder: "asc" }, take: 1 },
-      listedBy: { select: { name: true, email: true } },
-      reservations: isPartnerView
-        ? false
-        : {
-            include: {
-              partner: {
-                select: {
-                  name: true,
-                  email: true,
-                  partnerProfile: true,
-                },
-              },
-            },
-            orderBy: { reservedAt: "desc" },
-            take: 1,
-          },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -69,6 +53,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    const photoFiles = formData.getAll("photos") as File[];
+    const validPhotos = photoFiles.filter((f) => f.size > 0);
+    if (validPhotos.length === 0) {
+      return NextResponse.json({ error: "At least one photo is required" }, { status: 400 });
+    }
+
     const vehicle = await prisma.vehicle.create({
       data: {
         ...parsed.data,
@@ -76,9 +66,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const photoFiles = formData.getAll("photos") as File[];
     const photoWarnings = await uploadVehiclePhotos(
-      photoFiles,
+      validPhotos,
       vehicle.id,
       0,
       async (url, sortOrder) => {
@@ -88,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "VEHICLE_CREATED",
       entityType: "Vehicle",

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
+import { BackToDashboard } from "@/components/back-to-dashboard";
+import { LoadingOverlay } from "@/components/loading-overlay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/disclaimer";
@@ -42,10 +44,14 @@ function matchesCompanySearch(reservation: Reservation, query: string) {
 
 export default function TeslaReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [companySearch, setCompanySearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(null);
+  const [error, setError] = useState("");
 
   const hasActiveFilters = statusFilter !== "ALL" || companySearch.trim().length > 0;
 
@@ -55,8 +61,12 @@ export default function TeslaReservationsPage() {
     return true;
   });
 
-  function load() {
-    fetch("/api/reservations").then((r) => r.json()).then(setReservations);
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/reservations");
+    const data = await res.json();
+    setReservations(Array.isArray(data) ? data : []);
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -64,28 +74,51 @@ export default function TeslaReservationsPage() {
   }, []);
 
   async function handleAction(id: string, action: "approve" | "reject") {
+    if (action === "reject" && !reason.trim()) {
+      setError("Please enter a rejection reason");
+      return;
+    }
+
+    setError("");
+    setActionId(id);
+    setActionType(action);
+
     const body: { action: string; reason?: string } = { action };
     if (action === "reject") body.reason = reason;
 
-    await fetch(`/api/reservations/${id}`, {
+    const res = await fetch(`/api/reservations/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
+    if (!res.ok) {
+      const data = await res.json();
+      setError(typeof data.error === "string" ? data.error : "Action failed");
+      setActionId(null);
+      setActionType(null);
+      return;
+    }
+
     setRejectingId(null);
     setReason("");
-    load();
+    setActionId(null);
+    setActionType(null);
+    await load();
   }
+
+  const actionLabel =
+    actionType === "approve" ? "Approving reservation..." : "Rejecting reservation...";
 
   return (
     <div className="min-h-screen bg-background">
+      <LoadingOverlay show={loading || actionId !== null} label={actionId ? actionLabel : "Loading reservations..."} />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <Link href="/tesla" className="text-sm text-muted-foreground hover:text-tesla-red">
-          ← Back to dashboard
-        </Link>
+        <BackToDashboard />
         <h1 className="mt-4 text-3xl font-semibold">Reservations</h1>
+
+        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-md flex-1">
@@ -119,7 +152,7 @@ export default function TeslaReservationsPage() {
         )}
 
         <div className="mt-8 space-y-4">
-          {filteredReservations.length === 0 ? (
+          {!loading && filteredReservations.length === 0 ? (
             <p className="text-muted-foreground">
               {hasActiveFilters
                 ? "No reservations match your filters."
@@ -156,13 +189,21 @@ export default function TeslaReservationsPage() {
                     </Link>
                     {r.status === "PENDING_APPROVAL" && (
                       <>
-                        <Button size="sm" onClick={() => handleAction(r.id, "approve")}>
+                        <Button
+                          size="sm"
+                          disabled={actionId !== null}
+                          onClick={() => handleAction(r.id, "approve")}
+                        >
                           Approve
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => setRejectingId(r.id)}
+                          disabled={actionId !== null}
+                          onClick={() => {
+                            setRejectingId(r.id);
+                            setError("");
+                          }}
                         >
                           Reject
                         </Button>
@@ -177,13 +218,27 @@ export default function TeslaReservationsPage() {
                       placeholder="Rejection reason"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
+                      disabled={actionId !== null}
                     />
                     <Button
                       size="sm"
                       variant="destructive"
+                      disabled={actionId !== null || !reason.trim()}
                       onClick={() => handleAction(r.id, "reject")}
                     >
-                      Confirm Reject
+                      {actionId === r.id && actionType === "reject" ? "Rejecting..." : "Confirm Reject"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionId !== null}
+                      onClick={() => {
+                        setRejectingId(null);
+                        setReason("");
+                        setError("");
+                      }}
+                    >
+                      Cancel
                     </Button>
                   </div>
                 )}

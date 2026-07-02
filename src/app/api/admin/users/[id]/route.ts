@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManageUsers } from "@/lib/rbac";
 import { adminUserUpdateSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/password";
@@ -62,7 +62,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     },
   });
 
-  await createAuditLog({
+  logAudit({
     actorId: session.user.id,
     action: "USER_UPDATED",
     entityType: "User",
@@ -71,4 +71,50 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   });
 
   return NextResponse.json(user);
+}
+
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { id } = await context.params;
+  const session = await auth();
+
+  if (!session?.user || !canManageUsers(session.user)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (id === session.user.id) {
+    return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id },
+    include: {
+      _count: { select: { listedVehicles: true } },
+    },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (existing._count.listedVehicles > 0) {
+    return NextResponse.json(
+      { error: "Cannot delete user with vehicle listings. Remove or reassign listings first." },
+      { status: 400 }
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.deleteMany({ where: { partnerId: id } });
+    await tx.user.delete({ where: { id } });
+  });
+
+  logAudit({
+    actorId: session.user.id,
+    action: "USER_DELETED",
+    entityType: "User",
+    entityId: id,
+    metadata: { email: existing.email, role: existing.role },
+  });
+
+  return NextResponse.json({ success: true });
 }

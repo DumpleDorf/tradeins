@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { UserRole } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
 import { canManagePartners } from "@/lib/rbac";
 import { partnerInviteSchema } from "@/lib/validations";
 import { hashPassword } from "@/lib/password";
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       include: { partnerProfile: true },
     });
 
-    await createAuditLog({
+    logAudit({
       actorId: session.user.id,
       action: "PARTNER_INVITED",
       entityType: "User",
