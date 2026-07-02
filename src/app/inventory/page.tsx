@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Header } from "@/components/header";
-import { Disclaimer } from "@/components/disclaimer";
 import { VehicleBrowse } from "@/components/inventory/vehicle-browse";
 import { Button } from "@/components/ui/button";
 
@@ -20,8 +19,6 @@ export default function InventoryPage() {
             </Button>
           </Link>
         </div>
-
-        <Disclaimer />
 
         <div className="mt-8">
           <VehicleBrowse

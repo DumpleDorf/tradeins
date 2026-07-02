@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
-import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { StatusBadge } from "@/components/disclaimer";
 import { Button } from "@/components/ui/button";
@@ -54,8 +53,6 @@ export default function ReservationsPage() {
             </Button>
           </Link>
         </div>
-
-        <Disclaimer />
 
         <div className="mt-8 space-y-4">
           {!loading && reservations.length === 0 ? (

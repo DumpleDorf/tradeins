@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { BackLink } from "@/components/back-link";
-import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { Button } from "@/components/ui/button";
@@ -77,10 +76,6 @@ export default function VehicleDetailPage() {
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <BackLink href="/inventory" label="Back to inventory" />
-
-        <div className="mt-6 animate-slide-up">
-          <Disclaimer />
-        </div>
 
         <div className="mt-8 animate-slide-up">
           <VehicleDetailContent

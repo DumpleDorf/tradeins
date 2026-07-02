@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { BackLink } from "@/components/back-link";
 import { LoadingOverlay } from "@/components/loading-overlay";
-import { Disclaimer } from "@/components/disclaimer";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { type VehicleDetails } from "@/lib/vehicle";
 
@@ -63,10 +62,6 @@ export default function ReservationDetailPage() {
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <BackLink href="/reservations" label="Back to my purchases" />
-
-        <div className="mt-6">
-          <Disclaimer />
-        </div>
 
         {reservation.rejectionReason && (
           <p className="mt-4 rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">

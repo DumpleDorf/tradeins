@@ -84,27 +84,26 @@ body {
     animation: loadingLabelPulse 2.2s ease-in-out infinite;
   }
 
-  .loading-spinner {
+  .loading-overlay-track {
     position: relative;
+    padding: 0.25rem 0.5rem;
   }
 
-  .loading-spinner-orbit {
-    border-top-color: rgba(227, 25, 55, 0.95);
-    border-right-color: rgba(227, 25, 55, 0.35);
-    animation: loadingOrbit 0.95s cubic-bezier(0.5, 0.1, 0.3, 1) infinite;
+  .loading-overlay-sweep {
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(227, 25, 55, 0.12) 50%,
+      transparent 65%
+    );
+    animation: loadingSweep 1.8s ease-in-out infinite;
   }
 
-  .loading-spinner-orbit--reverse {
-    border-top-color: rgba(255, 255, 255, 0.55);
-    border-right-color: rgba(255, 255, 255, 0.12);
-    animation: loadingOrbitReverse 1.35s cubic-bezier(0.5, 0.1, 0.3, 1) infinite;
-  }
-
-  .loading-spinner-dot {
-    background: #e31937;
-    box-shadow: 0 0 10px rgba(227, 25, 55, 0.65);
-    transform: translate(-50%, -50%);
-    animation: loadingDotPulse 1.4s ease-in-out infinite;
+  .loading-bar {
+    height: 35%;
+    box-shadow: 0 0 12px rgba(227, 25, 55, 0.35);
+    animation: loadingBarPulse 0.9s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
   }
 
   .filter-panel-scroll {
@@ -144,10 +143,13 @@ body {
     .loading-overlay-backdrop,
     .loading-overlay-panel,
     .loading-overlay-label,
-    .loading-spinner-orbit,
-    .loading-spinner-orbit--reverse,
-    .loading-spinner-dot {
+    .loading-bar,
+    .loading-overlay-sweep {
       animation: none;
+    }
+
+    .loading-bar {
+      height: 60%;
     }
   }
 }
@@ -196,27 +198,28 @@ body {
   }
 }
 
-@keyframes loadingOrbit {
-  to {
-    transform: rotate(360deg);
+@keyframes loadingBarPulse {
+  0% {
+    height: 28%;
+    opacity: 0.55;
   }
-}
-
-@keyframes loadingOrbitReverse {
-  to {
-    transform: rotate(-360deg);
-  }
-}
-
-@keyframes loadingDotPulse {
-  0%,
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    height: 100%;
     opacity: 1;
   }
-  50% {
-    transform: translate(-50%, -50%) scale(0.82);
-    opacity: 0.7;
+}
+
+@keyframes loadingSweep {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
   }
 }
 
