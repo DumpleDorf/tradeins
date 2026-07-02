@@ -11,35 +11,29 @@ export function HomeCta() {
   if (status === "loading") {
     return (
       <div className="mt-10 flex items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-white/70 hero-text-shadow">Loading...</p>
       </div>
     );
   }
 
   if (session?.user) {
     const dashboardPath = getDashboardPath(session.user.role);
-    const displayName = session.user.displayName ?? session.user.name;
 
     return (
-      <div className="mt-10 flex flex-col items-center gap-4">
-        <p className="text-sm text-muted-foreground">
-          Signed in as <span className="text-foreground">{displayName}</span>
-        </p>
-        <div className="flex items-center gap-3">
-          <Link href={dashboardPath}>
-            <Button size="lg" className="min-w-[200px]">
-              Go to Dashboard
-            </Button>
-          </Link>
-          <Button
-            size="lg"
-            variant="outline"
-            className="min-w-[140px]"
-            onClick={() => signOut({ callbackUrl: "/" })}
-          >
-            Sign Out
+      <div className="mt-10 flex items-center justify-center gap-3">
+        <Link href={dashboardPath}>
+          <Button size="lg" className="min-w-[200px]">
+            Go to Dashboard
           </Button>
-        </div>
+        </Link>
+        <Button
+          size="lg"
+          variant="outline"
+          className="min-w-[140px] border-white/40 bg-black/30 text-white hover:bg-black/50 hover:text-white"
+          onClick={() => signOut({ callbackUrl: "/" })}
+        >
+          Sign Out
+        </Button>
       </div>
     );
   }

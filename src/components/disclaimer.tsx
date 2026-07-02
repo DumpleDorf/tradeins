@@ -1,7 +1,15 @@
 import { cn } from "@/lib/utils";
 import { DISCLAIMER, LISTING_DISCLAIMER } from "@/lib/utils";
 
-export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "listing" }) {
+export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "listing" | "hero" }) {
+  if (variant === "hero") {
+    return (
+      <div className="hero-text-shadow rounded-sm border border-white/20 bg-black/40 px-4 py-3 text-sm text-white/90 backdrop-blur-sm">
+        {DISCLAIMER}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-sm border border-tesla-red/30 bg-tesla-red/5 px-4 py-3 text-sm text-muted-foreground">
       {variant === "listing" ? LISTING_DISCLAIMER : DISCLAIMER}
