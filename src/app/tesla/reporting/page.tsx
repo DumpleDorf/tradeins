@@ -73,7 +73,7 @@ export default function TeslaReportingPage() {
   return (
     <PageShell>
       <LoadingOverlay show={loading} label="Loading reporting..." />
-      <PageHeader title="Reporting" description="Trade-in inventory and purchase overview" />
+      <PageHeader title="Reporting" description="Trade-in inventory and reservation overview" />
 
       {data && (
         <div className="animate-slide-up space-y-10">
@@ -160,7 +160,7 @@ export default function TeslaReportingPage() {
                           <p className="text-muted-foreground">{vehicle.partner.email}</p>
                           {vehicle.reservedAt && (
                             <p className="mt-1 text-xs text-muted-foreground">
-                              Purchased {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
+                              Reserved {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
                             </p>
                           )}
                         </>

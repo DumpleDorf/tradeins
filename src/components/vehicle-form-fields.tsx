@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  AU_STATES,
   SERVICE_HISTORY_OPTIONS,
   VEHICLE_DAMAGE_OPTIONS,
   type VehicleDetails,
@@ -100,14 +101,33 @@ export function VehicleFormFields({
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("location")}>Location</Label>
+        <Label htmlFor={fieldId("site")}>Site</Label>
         <Input
-          id={fieldId("location")}
-          name="location"
-          defaultValue={defaultValues?.location}
-          placeholder="e.g. Sydney, Melbourne"
+          id={fieldId("site")}
+          name="site"
+          defaultValue={defaultValues?.site}
+          placeholder="Ex. Alexandria"
           required
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={fieldId("state")}>State</Label>
+        <select
+          id={fieldId("state")}
+          name="state"
+          className={vehicleSelectClassName}
+          defaultValue={defaultValues?.state || ""}
+          required
+        >
+          <option value="" disabled>
+            Ex. NSW
+          </option>
+          {AU_STATES.map((state) => (
+            <option key={state} value={state}>
+              {state}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-2">
         <Label htmlFor={fieldId("numberOfKeys")}>Number of Keys</Label>

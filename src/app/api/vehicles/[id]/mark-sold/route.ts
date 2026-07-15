@@ -27,6 +27,12 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     );
   }
 
+  const body = await _request.json().catch(() => ({}));
+  const comment =
+    typeof body?.comment === "string" && body.comment.trim()
+      ? body.comment.trim()
+      : null;
+
   const updated = await prisma.vehicle.update({
     where: { id },
     data: { status: VehicleStatus.SOLD },
@@ -37,7 +43,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     action: "VEHICLE_MARKED_SOLD",
     entityType: "Vehicle",
     entityId: id,
-    metadata: { vin: vehicle.vin },
+    metadata: { vin: vehicle.vin, comment },
   });
 
   return NextResponse.json(updated);

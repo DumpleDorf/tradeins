@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { canReserveVehicles } from "@/lib/rbac";
+import { reserveVehicleSchema } from "@/lib/validations";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function POST(_request: NextRequest, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const { id: vehicleId } = await context.params;
   const session = await auth();
 
@@ -22,6 +23,14 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   if (!partner?.partnerProfile) {
     return NextResponse.json({ error: "Partner profile not found" }, { status: 400 });
   }
+
+  const body = await request.json().catch(() => ({}));
+  const parsed = reserveVehicleSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid reservation request" }, { status: 400 });
+  }
+
+  const notes = parsed.data.notes?.trim() || null;
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -41,6 +50,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
           vehicleId,
           partnerId: session.user.id,
           status: "APPROVED",
+          notes,
           reviewedAt: new Date(),
         },
       });
@@ -50,12 +60,16 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
     logAudit({
       actorId: session.user.id,
-      action: "VEHICLE_PURCHASED",
-      entityType: "Reservation",
-      entityId: result.reservation.id,
+      action: "VEHICLE_RESERVED",
+      entityType: "Vehicle",
+      entityId: vehicleId,
       metadata: {
         vehicleId,
         vin: result.vehicle.vin,
+        reservationId: result.reservation.id,
+        partnerId: session.user.id,
+        partnerCompany: partner.partnerProfile.companyName,
+        notes,
       },
     });
 
@@ -67,6 +81,6 @@ export async function POST(_request: NextRequest, context: RouteContext) {
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: "Failed to purchase vehicle" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to reserve vehicle" }, { status: 500 });
   }
 }

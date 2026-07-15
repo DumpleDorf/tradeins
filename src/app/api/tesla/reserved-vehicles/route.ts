@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
         updatedAt: vehicle.updatedAt,
         photoUrl: vehicle.photos[0]?.url ?? null,
         reservedAt: reservation?.reservedAt ?? null,
+        notes: reservation?.notes ?? null,
         partner: reservation
           ? {
               name: reservation.partner.name,

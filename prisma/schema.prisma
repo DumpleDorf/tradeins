@@ -76,7 +76,8 @@ model Vehicle {
   trim               String        @db.Text
   odometer           Int
   price              Int
-  location           String        @default("")
+  site               String        @default("")
+  state              String        @default("")
   numberOfKeys       Int
   vehicleDamage      String
   serviceHistory     String
@@ -95,7 +96,8 @@ model Vehicle {
   @@index([make, model, year])
   @@index([odometer])
   @@index([price])
-  @@index([location])
+  @@index([state])
+  @@index([site])
 }
 
 model VehiclePhoto {
@@ -115,6 +117,7 @@ model Reservation {
   vehicleId       String
   partnerId       String
   status          ReservationStatus @default(PENDING_APPROVAL)
+  notes           String?           @db.Text
   rejectionReason String?           @db.Text
   reservedAt      DateTime          @default(now())
   reviewedAt      DateTime?

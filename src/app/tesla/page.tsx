@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const links = [
   { href: "/tesla/listings", title: "Listings", desc: "Create and manage vehicle listings" },
-  { href: "/tesla/reservations", title: "Reserved / Sold", desc: "View purchased vehicles and mark sales complete" },
+  { href: "/tesla/reservations", title: "Reserved / Sold", desc: "Review reserved vehicles and confirm sales" },
   { href: "/tesla/reporting", title: "Reporting", desc: "Inventory stats and reserved vehicle overview" },
   { href: "/tesla/partners", title: "Partners", desc: "Invite and manage wholesale partners" },
   { href: "/tesla/audit", title: "Audit Log", desc: "View all platform activity" },

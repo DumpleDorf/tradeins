@@ -11,6 +11,7 @@ type Reservation = {
   id: string;
   status: string;
   reservedAt: string;
+  notes?: string | null;
   rejectionReason?: string;
   vehicle: {
     id: string;
@@ -40,13 +41,16 @@ export default function ReservationsPage() {
 
   return (
     <div className="min-h-screen">
-      <LoadingOverlay show={loading} label="Loading purchases..." />
+      <LoadingOverlay show={loading} label="Loading reservations..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight">My Purchases</h1>
-            <p className="mt-1 text-muted-foreground">Vehicles reserved under your company</p>
+            <h1 className="text-4xl font-semibold tracking-tight">My Reservations</h1>
+            <p className="mt-1 text-muted-foreground">
+              Vehicles you have marked as an intention to buy. Tesla staff confirm sales by
+              marking them sold.
+            </p>
           </div>
           <Link href="/inventory">
             <Button variant="outline" className="border-border/80 bg-card/80 backdrop-blur-sm">
@@ -58,7 +62,7 @@ export default function ReservationsPage() {
         <div className="mt-8 space-y-4">
           {!loading && reservations.length === 0 ? (
             <div className="rounded-sm border border-border/80 bg-card/80 p-10 text-center backdrop-blur-sm">
-              <p className="text-muted-foreground">You have not purchased any vehicles yet.</p>
+              <p className="text-muted-foreground">You have not reserved any vehicles yet.</p>
             </div>
           ) : (
             reservations.map((r) => (
@@ -74,11 +78,11 @@ export default function ReservationsPage() {
                     <StatusBadge status={r.vehicle.status} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    VIN: {r.vehicle.vin} · Plate {r.vehicle.licensePlateNumber} · Purchased{" "}
+                    VIN: {r.vehicle.vin} · Plate {r.vehicle.licensePlateNumber} · Reserved{" "}
                     {new Date(r.reservedAt).toLocaleString("en-AU")}
                   </p>
-                  {r.rejectionReason && (
-                    <p className="mt-2 text-sm text-red-400">Note: {r.rejectionReason}</p>
+                  {r.notes && (
+                    <p className="mt-2 text-sm text-muted-foreground">Notes: {r.notes}</p>
                   )}
                 </div>
                 <Link href={`/reservations/${r.id}`}>

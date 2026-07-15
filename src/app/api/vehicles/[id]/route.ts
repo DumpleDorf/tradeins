@@ -14,6 +14,19 @@ async function getVehicleResponse(id: string) {
     include: {
       photos: { orderBy: { sortOrder: "asc" } },
       listedBy: { select: { name: true } },
+      reservations: {
+        orderBy: { reservedAt: "desc" },
+        include: {
+          partner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              partnerProfile: { select: { companyName: true, contactName: true } },
+            },
+          },
+        },
+      },
     },
   });
 }

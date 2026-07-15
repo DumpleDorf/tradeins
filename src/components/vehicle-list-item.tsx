@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { VehicleImage } from "@/components/vehicle-image";
 import { formatOdometer } from "@/lib/utils";
-import { formatVehiclePrice } from "@/lib/vehicle";
+import { formatVehicleLocation, formatVehiclePrice } from "@/lib/vehicle";
 import { StatusBadge } from "@/components/disclaimer";
 
 type VehicleListItemProps = {
@@ -13,7 +13,8 @@ type VehicleListItemProps = {
     trim: string;
     odometer: number;
     price: number;
-    location?: string;
+    site?: string;
+    state?: string;
     licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
@@ -58,7 +59,9 @@ export function VehicleListItem({ vehicle, href, showStatus }: VehicleListItemPr
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span>{formatOdometer(vehicle.odometer)}</span>
           <span>Plate {vehicle.licensePlateNumber}</span>
-          {vehicle.location ? <span>{vehicle.location}</span> : null}
+          {formatVehicleLocation(vehicle.site, vehicle.state) !== "—" ? (
+            <span>{formatVehicleLocation(vehicle.site, vehicle.state)}</span>
+          ) : null}
         </div>
       </div>
 

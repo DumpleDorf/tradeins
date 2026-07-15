@@ -17,7 +17,7 @@ export type InventoryFilterValues = {
   vehicleDamage: "" | "Yes" | "No";
   serviceHistory: "" | (typeof SERVICE_HISTORY_OPTIONS)[number];
   pricing: "" | "priced" | "unpriced";
-  location: string;
+  state: string;
   status: "" | "AVAILABLE" | "RESERVED" | "SOLD";
 };
 
@@ -29,7 +29,7 @@ export type InventoryMeta = {
   makes: string[];
   modelOptions: { make: string; model: string }[];
   serviceHistories: string[];
-  locations: string[];
+  states: string[];
 };
 
 type InventoryFiltersPanelProps = {
@@ -58,7 +58,7 @@ export function countActiveInventoryFilters(
   if (filters.vehicleDamage) count++;
   if (filters.serviceHistory) count++;
   if (filters.pricing) count++;
-  if (filters.location) count++;
+  if (filters.state) count++;
   if (filters.status) count++;
   return count;
 }
@@ -72,7 +72,7 @@ export function createDefaultFilters(meta: InventoryMeta): InventoryFilterValues
     vehicleDamage: "",
     serviceHistory: "",
     pricing: "",
-    location: "",
+    state: "",
     status: "",
   };
 }
@@ -216,17 +216,17 @@ export function InventoryFiltersPanel({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="filter-location">Location</Label>
+                <Label htmlFor="filter-state">State</Label>
                 <select
-                  id="filter-location"
+                  id="filter-state"
                   className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                  value={draft.location}
-                  onChange={(e) => onDraftChange({ ...draft, location: e.target.value })}
+                  value={draft.state}
+                  onChange={(e) => onDraftChange({ ...draft, state: e.target.value })}
                 >
-                  <option value="">All locations</option>
-                  {(meta.locations ?? []).map((location) => (
-                    <option key={location} value={location}>
-                      {location}
+                  <option value="">All states</option>
+                  {(meta.states ?? []).map((state) => (
+                    <option key={state} value={state}>
+                      {state}
                     </option>
                   ))}
                 </select>

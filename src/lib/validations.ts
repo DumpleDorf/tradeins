@@ -14,7 +14,8 @@ export const vehicleSchema = z.object({
   trim: z.string().min(1),
   odometer: z.coerce.number().int().min(0),
   price: z.coerce.number().int().min(0),
-  location: z.string().min(1),
+  site: z.string().min(1),
+  state: z.enum(["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"]),
   numberOfKeys: z.coerce.number().int().min(0).max(10),
   vehicleDamage: z.enum(["Yes", "No"]),
   serviceHistory: z.enum([
@@ -78,7 +79,7 @@ export const inventoryFiltersSchema = z.object({
     .enum(["Full Service History", "Partial Service History", "No Service History"])
     .optional(),
   pricing: z.enum(["priced", "unpriced"]).optional(),
-  location: z.string().optional(),
+  state: z.string().optional(),
   status: z.enum(["AVAILABLE", "RESERVED", "SOLD"]).optional(),
   search: z.string().optional(),
   sort: z
@@ -97,4 +98,14 @@ export const inventoryFiltersSchema = z.object({
     (value) => (value === "" || value === undefined || value === null ? undefined : value),
     z.coerce.number().int().min(1).optional()
   ),
+});
+
+export const vehicleStatusChangeSchema = z.object({
+  status: z.enum(["AVAILABLE", "RESERVED", "SOLD"]),
+  partnerId: z.string().optional(),
+  comment: z.string().max(2000).optional(),
+});
+
+export const reserveVehicleSchema = z.object({
+  notes: z.string().max(2000).optional(),
 });

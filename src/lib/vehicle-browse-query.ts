@@ -40,7 +40,7 @@ export function buildVehicleBrowseWhere(
   if (filters.model) where.model = filters.model;
   if (filters.vehicleDamage) where.vehicleDamage = filters.vehicleDamage;
   if (filters.serviceHistory) where.serviceHistory = filters.serviceHistory;
-  if (filters.location) where.location = filters.location;
+  if (filters.state) where.state = filters.state;
   if (filters.status) where.status = filters.status;
 
   if (filters.pricing === "priced") {
@@ -69,7 +69,8 @@ export function buildVehicleBrowseWhere(
       { model: { contains: query, mode: "insensitive" } },
       { trim: { contains: query, mode: "insensitive" } },
       { licensePlateNumber: { contains: query, mode: "insensitive" } },
-      { location: { contains: query, mode: "insensitive" } },
+      { site: { contains: query, mode: "insensitive" } },
+      { state: { contains: query, mode: "insensitive" } },
     ];
     if (yearMatch !== null) {
       searchConditions.push({ year: yearMatch });
@@ -92,8 +93,6 @@ export async function queryVehicleBrowse(
   const sort = filters.sort ?? "newest";
   const page = filters.page ?? 1;
 
-  // Keep this to 2 round-trips so serverless + Supabase pooler don't stall under
-  // many parallel Prisma connections.
   const [vehicles, total, metaRows, bounds] = await Promise.all([
     prisma.vehicle.findMany({
       where,
@@ -111,7 +110,7 @@ export async function queryVehicleBrowse(
         make: true,
         model: true,
         serviceHistory: true,
-        location: true,
+        state: true,
       },
     }),
     prisma.vehicle.aggregate({
@@ -140,10 +139,10 @@ export async function queryVehicleBrowse(
     ...new Set(metaRows.map((row) => row.serviceHistory)),
   ].sort((a, b) => a.localeCompare(b));
 
-  const locations = [
+  const states = [
     ...new Set(
       metaRows
-        .map((row) => row.location?.trim())
+        .map((row) => row.state?.trim())
         .filter((value): value is string => Boolean(value))
     ),
   ].sort((a, b) => a.localeCompare(b));
@@ -167,7 +166,7 @@ export async function queryVehicleBrowse(
       makes,
       modelOptions,
       serviceHistories,
-      locations,
+      states,
     },
   };
 }

@@ -7,6 +7,7 @@ import { BackLink } from "@/components/back-link";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { type VehicleDetails } from "@/lib/vehicle";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +21,9 @@ export default function VehicleDetailPage() {
   const router = useRouter();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
+  const [reserving, setReserving] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -42,16 +44,20 @@ export default function VehicleDetailPage() {
     };
   }, [id]);
 
-  async function handlePurchase() {
-    setPurchasing(true);
+  async function handleReserve() {
+    setReserving(true);
     setError("");
 
-    const res = await fetch(`/api/vehicles/${id}/reserve`, { method: "POST" });
+    const res = await fetch(`/api/vehicles/${id}/reserve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: notes.trim() || undefined }),
+    });
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Failed to purchase vehicle");
-      setPurchasing(false);
+      setError(data.error ?? "Failed to reserve vehicle");
+      setReserving(false);
       return;
     }
 
@@ -81,7 +87,7 @@ export default function VehicleDetailPage() {
 
   return (
     <div className="min-h-screen">
-      <LoadingOverlay show={purchasing} label="Purchasing vehicle..." />
+      <LoadingOverlay show={reserving} label="Submitting reservation..." />
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <BackLink href="/inventory" label="Back to inventory" />
@@ -91,13 +97,13 @@ export default function VehicleDetailPage() {
             vehicle={vehicle}
             sidebar={
               <div className="rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
-                <h2 className="mb-3 font-semibold">Purchase vehicle</h2>
+                <h2 className="mb-3 font-semibold">Reserve vehicle</h2>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Reserve this vehicle under your company. It will be hidden from other suppliers
-                  once purchased.
+                  Reserving marks your intention to buy and hides this vehicle from other
+                  wholesalers. Your request is sent to Tesla staff to confirm the sale.
                 </p>
                 <Button size="lg" className="w-full" onClick={() => setShowDialog(true)}>
-                  Purchase this Vehicle
+                  Reserve this Vehicle
                 </Button>
               </div>
             }
@@ -110,24 +116,35 @@ export default function VehicleDetailPage() {
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="purchase-dialog-title"
+          aria-labelledby="reserve-dialog-title"
         >
           <div
             className={cn(
               "w-full max-w-md rounded-sm border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-md animate-slide-up"
             )}
           >
-            <h2 id="purchase-dialog-title" className="text-lg font-semibold">
-              Confirm purchase
+            <h2 id="reserve-dialog-title" className="text-lg font-semibold">
+              Confirm reservation
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Pressing confirm below will hide this vehicle listing from other suppliers and
-              reserve this vehicle under your company.
+              This will reserve the vehicle under your company as an intention to buy and notify
+              Tesla staff to confirm the sale (Available → Reserved → Sold).
             </p>
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="reservation-notes">Reservation notes (optional)</Label>
+              <textarea
+                id="reservation-notes"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any comments for Tesla staff..."
+                className="flex w-full rounded-sm border border-border bg-card px-3 py-2 text-sm"
+              />
+            </div>
             {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
             <div className="mt-6 flex gap-3">
-              <Button className="flex-1" onClick={handlePurchase} disabled={purchasing}>
-                {purchasing ? "Confirming..." : "Confirm"}
+              <Button className="flex-1" onClick={handleReserve} disabled={reserving}>
+                {reserving ? "Submitting..." : "Confirm reservation"}
               </Button>
               <Button
                 className="flex-1"
@@ -136,7 +153,7 @@ export default function VehicleDetailPage() {
                   setShowDialog(false);
                   setError("");
                 }}
-                disabled={purchasing}
+                disabled={reserving}
               >
                 Cancel
               </Button>

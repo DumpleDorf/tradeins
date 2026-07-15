@@ -11,11 +11,13 @@ export default function InventoryPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="animate-slide-up space-y-1">
             <h1 className="text-4xl font-semibold tracking-tight">Available Inventory</h1>
-            <p className="text-muted-foreground">Browse trade-in vehicles</p>
+            <p className="text-muted-foreground">
+              Browse wholesaler-ready vehicles. Reserving marks your intention to buy.
+            </p>
           </div>
           <Link href="/reservations" className="animate-slide-up shrink-0">
             <Button variant="outline" className="border-border/80 bg-card/80 backdrop-blur-sm">
-              My Purchases
+              My Reservations
             </Button>
           </Link>
         </div>

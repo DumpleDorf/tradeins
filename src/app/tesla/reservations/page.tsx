@@ -102,7 +102,7 @@ export default function TeslaReservationsPage() {
 
       <PageHeader
         title="Reserved / Sold Vehicles"
-        description="Vehicles purchased by wholesale partners"
+        description="Vehicles reserved by wholesale partners — confirm sales by marking sold"
       />
 
       {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
@@ -154,7 +154,7 @@ export default function TeslaReservationsPage() {
                   )}
                   {vehicle.reservedAt && (
                     <p className="text-xs text-muted-foreground">
-                      Purchased {new Date(vehicle.reservedAt).toLocaleString("en-AU")}
+                      Reserved {new Date(vehicle.reservedAt).toLocaleString("en-AU")}
                     </p>
                   )}
                 </div>

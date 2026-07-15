@@ -6,8 +6,11 @@ export const SERVICE_HISTORY_OPTIONS = [
   "No Service History",
 ] as const;
 
+export const AU_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
+
 export type VehicleDamage = (typeof VEHICLE_DAMAGE_OPTIONS)[number];
 export type ServiceHistory = (typeof SERVICE_HISTORY_OPTIONS)[number];
+export type AuState = (typeof AU_STATES)[number];
 
 export type VehicleDetails = {
   vin: string;
@@ -18,7 +21,8 @@ export type VehicleDetails = {
   trim: string;
   odometer: number;
   price: number;
-  location: string;
+  site: string;
+  state: string;
   numberOfKeys: number;
   vehicleDamage: string;
   serviceHistory: string;
@@ -34,6 +38,11 @@ export function formatVehiclePrice(price: number) {
   }).format(price);
 }
 
+export function formatVehicleLocation(site?: string | null, state?: string | null) {
+  const parts = [site?.trim(), state?.trim()].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "—";
+}
+
 export function getVehicleDetailRows(vehicle: VehicleDetails) {
   return [
     ["VIN", vehicle.vin],
@@ -43,7 +52,8 @@ export function getVehicleDetailRows(vehicle: VehicleDetails) {
     ["Model", vehicle.model],
     ["Trim", vehicle.trim],
     ["Price", formatVehiclePrice(vehicle.price)],
-    ["Location", vehicle.location || "—"],
+    ["Site", vehicle.site || "—"],
+    ["State", vehicle.state || "—"],
     ["Odometer", `${new Intl.NumberFormat("en-AU").format(vehicle.odometer)} km`],
     ["Number of Keys", String(vehicle.numberOfKeys)],
     ["Vehicle Damage", vehicle.vehicleDamage],

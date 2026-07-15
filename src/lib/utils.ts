@@ -24,7 +24,7 @@ export function formatMileage(mileage: number) {
 }
 
 export const DISCLAIMER =
-  "Purchasing a vehicle reserves it under your company and hides it from other suppliers. Contact Tesla to finalize the sale.";
+  "Reserving a vehicle marks your intention to buy and hides it from other wholesalers. Tesla staff will confirm the sale by marking it as sold.";
 
 export const LISTING_DISCLAIMER =
-  "Reserved vehicles are held for the purchasing partner. Mark vehicles as sold once the sale is complete.";
+  "Flow: Available → Reserved → Sold. A reservation is an intention to buy. Mark reserved vehicles as sold once the sale is confirmed.";

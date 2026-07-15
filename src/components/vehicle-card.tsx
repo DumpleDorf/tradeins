@@ -2,7 +2,7 @@ import Link from "next/link";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatOdometer, cn } from "@/lib/utils";
-import { formatVehiclePrice } from "@/lib/vehicle";
+import { formatVehicleLocation, formatVehiclePrice } from "@/lib/vehicle";
 import { StatusBadge } from "@/components/disclaimer";
 
 type VehicleCardProps = {
@@ -14,7 +14,8 @@ type VehicleCardProps = {
     trim: string;
     odometer: number;
     price: number;
-    location?: string;
+    site?: string;
+    state?: string;
     licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
@@ -77,7 +78,9 @@ export function VehicleCard({ vehicle, href, showStatus, compact }: VehicleCardP
           >
             <span>{formatOdometer(vehicle.odometer)}</span>
             <span>Plate {vehicle.licensePlateNumber}</span>
-            {vehicle.location ? <span>{vehicle.location}</span> : null}
+            {formatVehicleLocation(vehicle.site, vehicle.state) !== "—" ? (
+              <span>{formatVehicleLocation(vehicle.site, vehicle.state)}</span>
+            ) : null}
           </div>
         </CardContent>
       </Card>

@@ -31,7 +31,8 @@ type BrowseVehicle = {
   trim: string;
   odometer: number;
   price: number;
-  location?: string;
+  site?: string;
+  state?: string;
   licensePlateNumber: string;
   status?: string;
   photos: { url: string }[];
@@ -55,7 +56,7 @@ export function VehicleBrowse({
   vehicleBasePath,
   loadingLabel = "Loading vehicles...",
   emptyMessage = "No vehicles match your search or filters.",
-  searchPlaceholder = "Search by make, model, trim, rego, location, or year...",
+  searchPlaceholder = "Search by make, model, trim, rego, site, state, or year...",
   sortSelectId = "vehicle-browse-sort",
   showStatus = false,
   showStatusFilter = false,
@@ -140,7 +141,7 @@ export function VehicleBrowse({
               current.vehicleDamage === defaults.vehicleDamage &&
               current.serviceHistory === defaults.serviceHistory &&
               current.pricing === defaults.pricing &&
-              current.location === defaults.location &&
+              current.state === defaults.state &&
               current.status === defaults.status &&
               current.yearRange[0] === defaults.yearRange[0] &&
               current.yearRange[1] === defaults.yearRange[1] &&

@@ -12,6 +12,7 @@ type ReservationDetail = {
   id: string;
   status: string;
   reservedAt: string;
+  notes?: string | null;
   rejectionReason?: string | null;
   vehicle: VehicleDetails & {
     id: string;
@@ -39,7 +40,7 @@ export default function ReservationDetailPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <LoadingOverlay show label="Loading purchase..." />
+        <LoadingOverlay show label="Loading reservation..." />
       </div>
     );
   }
@@ -49,8 +50,8 @@ export default function ReservationDetailPage() {
       <div className="min-h-screen">
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <p>Purchase not found.</p>
-          <BackLink href="/reservations" label="Back to my purchases" className="mt-4" />
+          <p>Reservation not found.</p>
+          <BackLink href="/reservations" label="Back to my reservations" className="mt-4" />
         </main>
       </div>
     );
@@ -62,11 +63,11 @@ export default function ReservationDetailPage() {
     <div className="min-h-screen">
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <BackLink href="/reservations" label="Back to my purchases" />
+        <BackLink href="/reservations" label="Back to my reservations" />
 
-        {reservation.rejectionReason && (
-          <p className="mt-4 rounded-sm border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            Note: {reservation.rejectionReason}
+        {reservation.notes && (
+          <p className="mt-4 rounded-sm border border-border/60 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
+            Your notes: {reservation.notes}
           </p>
         )}
 
@@ -74,13 +75,13 @@ export default function ReservationDetailPage() {
           <VehicleDetailContent
             vehicle={vehicle}
             statusBadge={vehicle.status}
-            subtitle={`Purchased ${new Date(reservation.reservedAt).toLocaleString("en-AU")}`}
+            subtitle={`Reserved ${new Date(reservation.reservedAt).toLocaleString("en-AU")}`}
             sidebar={
               <div className="rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
-                <h2 className="mb-2 font-semibold">Purchase status</h2>
+                <h2 className="mb-2 font-semibold">Reservation status</h2>
                 <p className="text-sm text-muted-foreground">
-                  This vehicle is reserved under your company and hidden from other suppliers.
-                  Contact Tesla to finalize the sale.
+                  This reservation marks your intention to buy. The vehicle is hidden from other
+                  wholesalers while Tesla staff confirm the sale (Available → Reserved → Sold).
                 </p>
               </div>
             }
