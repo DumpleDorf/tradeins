@@ -23,7 +23,7 @@ export const vehicleSchema = z.object({
     "Partial Service History",
     "No Service History",
   ]),
-  vehicleNotes: z.string().min(1),
+  vehicleNotes: z.string().optional().default(""),
 });
 
 export const partnerInviteSchema = z.object({

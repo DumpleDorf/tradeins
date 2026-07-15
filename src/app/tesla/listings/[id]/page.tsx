@@ -8,7 +8,11 @@ import { ListingPhotoManager, type ManagedPhoto } from "@/components/listing-pho
 import { BackLink } from "@/components/back-link";
 import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
-import { VehicleFormFields } from "@/components/vehicle-form-fields";
+import {
+  RequiredAsterisk,
+  RequiredFieldsHint,
+  VehicleFormFields,
+} from "@/components/vehicle-form-fields";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatApiError } from "@/lib/api-errors";
@@ -178,7 +182,13 @@ export default function TeslaListingDetailPage() {
     photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
     orderedPhotos.forEach((photo) => formData.append("photoOrder", photo.id));
 
-    const photoFiles = formData.getAll("photos") as File[];
+    const photoFiles = (formData.getAll("photos") as File[]).filter((file) => file.size > 0);
+    if (orderedPhotos.length === 0 && photoFiles.length === 0) {
+      setError("At least one photo is required.");
+      setSaving(false);
+      return;
+    }
+
     const photoErrors = validateVehiclePhotoFiles(photoFiles);
     if (photoErrors.length > 0) {
       setError(photoErrors.join(" "));
@@ -312,10 +322,14 @@ export default function TeslaListingDetailPage() {
               </h1>
             </div>
 
+            <RequiredFieldsHint />
+
             <VehicleFormFields defaultValues={vehicle} idPrefix="edit-" showPhotos />
 
             <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
-              <h2 className="font-semibold">Photos</h2>
+              <h2 className="font-semibold">
+                Photos <RequiredAsterisk />
+              </h2>
               <ListingPhotoManager
                 photos={orderedPhotos}
                 onChange={setOrderedPhotos}
@@ -326,6 +340,10 @@ export default function TeslaListingDetailPage() {
                   {photosToRemove.length} photo(s) will be removed when you save.
                 </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                At least one photo is required. Existing photos count toward this requirement;
+                use the file input above to add more.
+              </p>
             </div>
 
             <div className="flex justify-center gap-3">

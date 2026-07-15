@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Star } from "lucide-react";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Button } from "@/components/ui/button";
@@ -121,9 +121,14 @@ export function ListingPhotoManager({
 type ListingPhotoUploadProps = {
   photos: UploadPhoto[];
   onChange: (photos: UploadPhoto[]) => void;
+  label?: ReactNode;
 };
 
-export function ListingPhotoUpload({ photos, onChange }: ListingPhotoUploadProps) {
+export function ListingPhotoUpload({
+  photos,
+  onChange,
+  label = "Photos",
+}: ListingPhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef(photos);
   photosRef.current = photos;
@@ -162,7 +167,7 @@ export function ListingPhotoUpload({ photos, onChange }: ListingPhotoUploadProps
   return (
     <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Photos</h2>
+        <h2 className="font-semibold">{label}</h2>
         <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
           Add photos
         </Button>

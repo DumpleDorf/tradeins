@@ -11,7 +11,11 @@ import {
   ListingPhotoUpload,
   type UploadPhoto,
 } from "@/components/listing-photo-manager";
-import { VehicleFormFields } from "@/components/vehicle-form-fields";
+import {
+  RequiredAsterisk,
+  RequiredFieldsHint,
+  VehicleFormFields,
+} from "@/components/vehicle-form-fields";
 import { formatApiError } from "@/lib/api-errors";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 
@@ -68,11 +72,20 @@ export default function NewListingPage() {
         <Disclaimer variant="listing" />
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <RequiredFieldsHint />
           {error && <p className="text-sm text-red-400">{error}</p>}
 
           <VehicleFormFields showPhotos={false} />
 
-          <ListingPhotoUpload photos={photos} onChange={setPhotos} />
+          <ListingPhotoUpload
+            photos={photos}
+            onChange={setPhotos}
+            label={
+              <>
+                Photos <RequiredAsterisk />
+              </>
+            }
+          />
 
           <div className="flex justify-center">
             <Button type="submit" disabled={loading}>

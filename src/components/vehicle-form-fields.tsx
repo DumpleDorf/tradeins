@@ -15,6 +15,22 @@ import {
 export const vehicleSelectClassName =
   "flex h-10 w-full rounded-sm border border-border bg-card px-3 text-sm";
 
+export function RequiredAsterisk() {
+  return (
+    <span className="text-red-500" aria-hidden="true">
+      *
+    </span>
+  );
+}
+
+export function RequiredFieldsHint() {
+  return (
+    <p className="text-sm text-muted-foreground">
+      Fields marked with a <span className="text-red-500">*</span> are mandatory.
+    </p>
+  );
+}
+
 type VehicleFormFieldsProps = {
   defaultValues?: Partial<VehicleDetails>;
   idPrefix?: string;
@@ -33,7 +49,9 @@ export function VehicleFormFields({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor={fieldId("vin")}>VIN</Label>
+        <Label htmlFor={fieldId("vin")}>
+          VIN <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("vin")}
           name="vin"
@@ -44,7 +62,9 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("licensePlateNumber")}>License Plate Number</Label>
+        <Label htmlFor={fieldId("licensePlateNumber")}>
+          License Plate Number <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("licensePlateNumber")}
           name="licensePlateNumber"
@@ -53,7 +73,9 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("year")}>Year</Label>
+        <Label htmlFor={fieldId("year")}>
+          Year <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("year")}
           name="year"
@@ -63,19 +85,27 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("make")}>Make</Label>
+        <Label htmlFor={fieldId("make")}>
+          Make <RequiredAsterisk />
+        </Label>
         <Input id={fieldId("make")} name="make" defaultValue={defaultValues?.make} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("model")}>Model</Label>
+        <Label htmlFor={fieldId("model")}>
+          Model <RequiredAsterisk />
+        </Label>
         <Input id={fieldId("model")} name="model" defaultValue={defaultValues?.model} required />
       </div>
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor={fieldId("trim")}>Trim</Label>
+        <Label htmlFor={fieldId("trim")}>
+          Trim <RequiredAsterisk />
+        </Label>
         <Input id={fieldId("trim")} name="trim" defaultValue={defaultValues?.trim} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("odometer")}>Odometer (km)</Label>
+        <Label htmlFor={fieldId("odometer")}>
+          Odometer (km) <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("odometer")}
           name="odometer"
@@ -86,7 +116,9 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("price")}>Price (AUD)</Label>
+        <Label htmlFor={fieldId("price")}>
+          Price (AUD) <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("price")}
           name="price"
@@ -101,7 +133,9 @@ export function VehicleFormFields({
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("site")}>Site</Label>
+        <Label htmlFor={fieldId("site")}>
+          Site <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("site")}
           name="site"
@@ -111,7 +145,9 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("state")}>State</Label>
+        <Label htmlFor={fieldId("state")}>
+          State <RequiredAsterisk />
+        </Label>
         <select
           id={fieldId("state")}
           name="state"
@@ -119,9 +155,7 @@ export function VehicleFormFields({
           defaultValue={defaultValues?.state || ""}
           required
         >
-          <option value="" disabled>
-            Ex. NSW
-          </option>
+          <option value="" disabled />
           {AU_STATES.map((state) => (
             <option key={state} value={state}>
               {state}
@@ -130,7 +164,9 @@ export function VehicleFormFields({
         </select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("numberOfKeys")}>Number of Keys</Label>
+        <Label htmlFor={fieldId("numberOfKeys")}>
+          Number of Keys <RequiredAsterisk />
+        </Label>
         <Input
           id={fieldId("numberOfKeys")}
           name="numberOfKeys"
@@ -142,14 +178,17 @@ export function VehicleFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("vehicleDamage")}>Vehicle Damage</Label>
+        <Label htmlFor={fieldId("vehicleDamage")}>
+          Vehicle Damage <RequiredAsterisk />
+        </Label>
         <select
           id={fieldId("vehicleDamage")}
           name="vehicleDamage"
           className={vehicleSelectClassName}
-          defaultValue={defaultValues?.vehicleDamage ?? "No"}
+          defaultValue={defaultValues?.vehicleDamage ?? ""}
           required
         >
+          <option value="" disabled />
           {VEHICLE_DAMAGE_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -158,14 +197,17 @@ export function VehicleFormFields({
         </select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={fieldId("serviceHistory")}>Service History</Label>
+        <Label htmlFor={fieldId("serviceHistory")}>
+          Service History <RequiredAsterisk />
+        </Label>
         <select
           id={fieldId("serviceHistory")}
           name="serviceHistory"
           className={vehicleSelectClassName}
-          defaultValue={defaultValues?.serviceHistory ?? SERVICE_HISTORY_OPTIONS[0]}
+          defaultValue={defaultValues?.serviceHistory ?? ""}
           required
         >
+          <option value="" disabled />
           {SERVICE_HISTORY_OPTIONS.map((option) => (
             <option key={option} value={option}>
               {option}
@@ -180,13 +222,14 @@ export function VehicleFormFields({
           name="vehicleNotes"
           rows={4}
           defaultValue={defaultValues?.vehicleNotes}
-          required
           className="flex w-full rounded-sm border border-border bg-card px-3 py-2 text-sm"
         />
       </div>
       {showPhotos && (
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor={fieldId("photos")}>Photos</Label>
+          <Label htmlFor={fieldId("photos")}>
+            Photos {photosRequired ? <RequiredAsterisk /> : null}
+          </Label>
           <Input
             id={fieldId("photos")}
             name="photos"
