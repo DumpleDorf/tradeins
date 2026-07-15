@@ -28,12 +28,13 @@ export default function TeslaListingsPage() {
       <div className="mt-8">
         <VehicleBrowse
           apiEndpoint="/api/vehicles"
-          storageKey="tesla-listings-view-mode"
+          storageKey="tesla-listings-view-mode-v2"
           vehicleBasePath="/tesla/listings/"
           loadingLabel="Loading listings..."
           emptyMessage="No listings match your search or filters."
           sortSelectId="tesla-listings-sort"
           showStatus
+          showStatusFilter
         />
       </div>
     </PageShell>

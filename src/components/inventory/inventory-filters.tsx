@@ -16,6 +16,9 @@ export type InventoryFilterValues = {
   odometerRange: [number, number];
   vehicleDamage: "" | "Yes" | "No";
   serviceHistory: "" | (typeof SERVICE_HISTORY_OPTIONS)[number];
+  pricing: "" | "priced" | "unpriced";
+  location: string;
+  status: "" | "AVAILABLE" | "RESERVED" | "SOLD";
 };
 
 export type InventoryMeta = {
@@ -26,6 +29,7 @@ export type InventoryMeta = {
   makes: string[];
   modelOptions: { make: string; model: string }[];
   serviceHistories: string[];
+  locations: string[];
 };
 
 type InventoryFiltersPanelProps = {
@@ -37,6 +41,7 @@ type InventoryFiltersPanelProps = {
   activeCount: number;
   onApply: () => void;
   onClear: () => void;
+  showStatusFilter?: boolean;
 };
 
 export function countActiveInventoryFilters(
@@ -52,6 +57,9 @@ export function countActiveInventoryFilters(
   }
   if (filters.vehicleDamage) count++;
   if (filters.serviceHistory) count++;
+  if (filters.pricing) count++;
+  if (filters.location) count++;
+  if (filters.status) count++;
   return count;
 }
 
@@ -63,6 +71,9 @@ export function createDefaultFilters(meta: InventoryMeta): InventoryFilterValues
     odometerRange: [meta.odometerMin, meta.odometerMax],
     vehicleDamage: "",
     serviceHistory: "",
+    pricing: "",
+    location: "",
+    status: "",
   };
 }
 
@@ -75,6 +86,7 @@ export function InventoryFiltersPanel({
   activeCount,
   onApply,
   onClear,
+  showStatusFilter = false,
 }: InventoryFiltersPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -145,107 +157,165 @@ export function InventoryFiltersPanel({
 
           <div className="filter-panel-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">
             <div className="space-y-6 pr-1">
-            <div className="space-y-2">
-              <Label htmlFor="filter-make">Make</Label>
-              <select
-                id="filter-make"
-                className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                value={draft.make}
-                onChange={(e) =>
-                  onDraftChange({ ...draft, make: e.target.value, model: "" })
-                }
-              >
-                <option value="">All makes</option>
-                {meta.makes.map((make) => (
-                  <option key={make} value={make}>
-                    {make}
-                  </option>
-                ))}
-              </select>
-            </div>
+              {showStatusFilter && (
+                <div className="space-y-2">
+                  <Label htmlFor="filter-status">Status</Label>
+                  <select
+                    id="filter-status"
+                    className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                    value={draft.status}
+                    onChange={(e) =>
+                      onDraftChange({
+                        ...draft,
+                        status: e.target.value as InventoryFilterValues["status"],
+                      })
+                    }
+                  >
+                    <option value="">All statuses</option>
+                    <option value="AVAILABLE">Available</option>
+                    <option value="RESERVED">Reserved</option>
+                    <option value="SOLD">Sold</option>
+                  </select>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="filter-model">Model</Label>
-              <select
-                id="filter-model"
-                className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                value={draft.model}
-                onChange={(e) => onDraftChange({ ...draft, model: e.target.value })}
-              >
-                <option value="">All models</option>
-                {availableModels.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-make">Make</Label>
+                <select
+                  id="filter-make"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.make}
+                  onChange={(e) =>
+                    onDraftChange({ ...draft, make: e.target.value, model: "" })
+                  }
+                >
+                  <option value="">All makes</option>
+                  {meta.makes.map((make) => (
+                    <option key={make} value={make}>
+                      {make}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Year</Label>
-              <RangeSlider
-                min={meta.yearMin}
-                max={meta.yearMax}
-                step={1}
-                value={draft.yearRange}
-                onChange={(yearRange) => onDraftChange({ ...draft, yearRange })}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-model">Model</Label>
+                <select
+                  id="filter-model"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.model}
+                  onChange={(e) => onDraftChange({ ...draft, model: e.target.value })}
+                >
+                  <option value="">All models</option>
+                  {availableModels.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <Label>Odometer</Label>
-              <RangeSlider
-                min={meta.odometerMin}
-                max={meta.odometerMax}
-                step={1000}
-                value={draft.odometerRange}
-                onChange={(odometerRange) => onDraftChange({ ...draft, odometerRange })}
-                formatValue={formatOdometer}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-location">Location</Label>
+                <select
+                  id="filter-location"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.location}
+                  onChange={(e) => onDraftChange({ ...draft, location: e.target.value })}
+                >
+                  <option value="">All locations</option>
+                  {meta.locations.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="filter-damage">Vehicle damage</Label>
-              <select
-                id="filter-damage"
-                className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                value={draft.vehicleDamage}
-                onChange={(e) =>
-                  onDraftChange({
-                    ...draft,
-                    vehicleDamage: e.target.value as InventoryFilterValues["vehicleDamage"],
-                  })
-                }
-              >
-                <option value="">Any</option>
-                <option value="No">No damage reported</option>
-                <option value="Yes">Damage reported</option>
-              </select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-pricing">Pricing</Label>
+                <select
+                  id="filter-pricing"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.pricing}
+                  onChange={(e) =>
+                    onDraftChange({
+                      ...draft,
+                      pricing: e.target.value as InventoryFilterValues["pricing"],
+                    })
+                  }
+                >
+                  <option value="">Any</option>
+                  <option value="priced">Priced</option>
+                  <option value="unpriced">Unpriced</option>
+                </select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="filter-service">Service history</Label>
-              <select
-                id="filter-service"
-                className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                value={draft.serviceHistory}
-                onChange={(e) =>
-                  onDraftChange({
-                    ...draft,
-                    serviceHistory: e.target.value as InventoryFilterValues["serviceHistory"],
-                  })
-                }
-              >
-                <option value="">Any</option>
-                {SERVICE_HISTORY_OPTIONS.filter((option) =>
-                  meta.serviceHistories.includes(option)
-                ).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <RangeSlider
+                  min={meta.yearMin}
+                  max={meta.yearMax}
+                  step={1}
+                  value={draft.yearRange}
+                  onChange={(yearRange) => onDraftChange({ ...draft, yearRange })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Odometer</Label>
+                <RangeSlider
+                  min={meta.odometerMin}
+                  max={meta.odometerMax}
+                  step={1000}
+                  value={draft.odometerRange}
+                  onChange={(odometerRange) => onDraftChange({ ...draft, odometerRange })}
+                  formatValue={formatOdometer}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filter-damage">Vehicle damage</Label>
+                <select
+                  id="filter-damage"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.vehicleDamage}
+                  onChange={(e) =>
+                    onDraftChange({
+                      ...draft,
+                      vehicleDamage: e.target.value as InventoryFilterValues["vehicleDamage"],
+                    })
+                  }
+                >
+                  <option value="">Any</option>
+                  <option value="No">No damage reported</option>
+                  <option value="Yes">Damage reported</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="filter-service">Service history</Label>
+                <select
+                  id="filter-service"
+                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
+                  value={draft.serviceHistory}
+                  onChange={(e) =>
+                    onDraftChange({
+                      ...draft,
+                      serviceHistory: e.target.value as InventoryFilterValues["serviceHistory"],
+                    })
+                  }
+                >
+                  <option value="">Any</option>
+                  {SERVICE_HISTORY_OPTIONS.filter((option) =>
+                    meta.serviceHistories.includes(option)
+                  ).map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 

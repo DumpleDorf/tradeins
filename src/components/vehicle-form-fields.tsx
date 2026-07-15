@@ -90,12 +90,24 @@ export function VehicleFormFields({
           id={fieldId("price")}
           name="price"
           type="number"
-          min={1}
+          min={0}
           step={1}
-          defaultValue={defaultValues?.price}
+          defaultValue={defaultValues?.price ?? 0}
           required
         />
-        <p className="text-xs text-muted-foreground">Indicative wholesale price only.</p>
+        <p className="text-xs text-muted-foreground">
+          Indicative wholesale price. Enter 0 if the vehicle is unpriced.
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={fieldId("location")}>Location</Label>
+        <Input
+          id={fieldId("location")}
+          name="location"
+          defaultValue={defaultValues?.location}
+          placeholder="e.g. Sydney, Melbourne"
+          required
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor={fieldId("numberOfKeys")}>Number of Keys</Label>

@@ -13,7 +13,8 @@ export const vehicleSchema = z.object({
   model: z.string().min(1),
   trim: z.string().min(1),
   odometer: z.coerce.number().int().min(0),
-  price: z.coerce.number().int().min(1),
+  price: z.coerce.number().int().min(0),
+  location: z.string().min(1),
   numberOfKeys: z.coerce.number().int().min(0).max(10),
   vehicleDamage: z.enum(["Yes", "No"]),
   serviceHistory: z.enum([
@@ -76,6 +77,9 @@ export const inventoryFiltersSchema = z.object({
   serviceHistory: z
     .enum(["Full Service History", "Partial Service History", "No Service History"])
     .optional(),
+  pricing: z.enum(["priced", "unpriced"]).optional(),
+  location: z.string().optional(),
+  status: z.enum(["AVAILABLE", "RESERVED", "SOLD"]).optional(),
   search: z.string().optional(),
   sort: z
     .enum([

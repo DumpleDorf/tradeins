@@ -13,6 +13,7 @@ type VehicleListItemProps = {
     trim: string;
     odometer: number;
     price: number;
+    location?: string;
     licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
@@ -57,6 +58,7 @@ export function VehicleListItem({ vehicle, href, showStatus }: VehicleListItemPr
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
           <span>{formatOdometer(vehicle.odometer)}</span>
           <span>Plate {vehicle.licensePlateNumber}</span>
+          {vehicle.location ? <span>{vehicle.location}</span> : null}
         </div>
       </div>
 

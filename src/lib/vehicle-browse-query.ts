@@ -40,6 +40,14 @@ export function buildVehicleBrowseWhere(
   if (filters.model) where.model = filters.model;
   if (filters.vehicleDamage) where.vehicleDamage = filters.vehicleDamage;
   if (filters.serviceHistory) where.serviceHistory = filters.serviceHistory;
+  if (filters.location) where.location = filters.location;
+  if (filters.status) where.status = filters.status;
+
+  if (filters.pricing === "priced") {
+    where.price = { gt: 0 };
+  } else if (filters.pricing === "unpriced") {
+    where.price = { lte: 0 };
+  }
 
   if (filters.yearMin !== undefined || filters.yearMax !== undefined) {
     where.year = {};
@@ -61,6 +69,7 @@ export function buildVehicleBrowseWhere(
       { model: { contains: query, mode: "insensitive" } },
       { trim: { contains: query, mode: "insensitive" } },
       { licensePlateNumber: { contains: query, mode: "insensitive" } },
+      { location: { contains: query, mode: "insensitive" } },
     ];
     if (yearMatch !== null) {
       searchConditions.push({ year: yearMatch });
@@ -83,41 +92,51 @@ export async function queryVehicleBrowse(
   const sort = filters.sort ?? "newest";
   const page = filters.page ?? 1;
 
-  const [vehicles, total, bounds, makes, modelOptions, serviceHistories] = await Promise.all([
-    prisma.vehicle.findMany({
-      where,
-      include: {
-        photos: { orderBy: { sortOrder: "asc" }, take: 1 },
-      },
-      orderBy: buildVehicleBrowseOrderBy(sort),
-      skip: (page - 1) * VEHICLE_BROWSE_PAGE_SIZE,
-      take: VEHICLE_BROWSE_PAGE_SIZE,
-    }),
-    prisma.vehicle.count({ where }),
-    prisma.vehicle.aggregate({
-      where: metaWhere,
-      _min: { year: true, odometer: true },
-      _max: { year: true, odometer: true },
-    }),
-    prisma.vehicle.findMany({
-      where: metaWhere,
-      select: { make: true },
-      distinct: ["make"],
-      orderBy: { make: "asc" },
-    }),
-    prisma.vehicle.findMany({
-      where: metaWhere,
-      select: { make: true, model: true },
-      distinct: ["make", "model"],
-      orderBy: [{ make: "asc" }, { model: "asc" }],
-    }),
-    prisma.vehicle.findMany({
-      where: metaWhere,
-      select: { serviceHistory: true },
-      distinct: ["serviceHistory"],
-      orderBy: { serviceHistory: "asc" },
-    }),
-  ]);
+  const [vehicles, total, bounds, makes, modelOptions, serviceHistories, locations] =
+    await Promise.all([
+      prisma.vehicle.findMany({
+        where,
+        include: {
+          photos: { orderBy: { sortOrder: "asc" }, take: 1 },
+        },
+        orderBy: buildVehicleBrowseOrderBy(sort),
+        skip: (page - 1) * VEHICLE_BROWSE_PAGE_SIZE,
+        take: VEHICLE_BROWSE_PAGE_SIZE,
+      }),
+      prisma.vehicle.count({ where }),
+      prisma.vehicle.aggregate({
+        where: metaWhere,
+        _min: { year: true, odometer: true },
+        _max: { year: true, odometer: true },
+      }),
+      prisma.vehicle.findMany({
+        where: metaWhere,
+        select: { make: true },
+        distinct: ["make"],
+        orderBy: { make: "asc" },
+      }),
+      prisma.vehicle.findMany({
+        where: metaWhere,
+        select: { make: true, model: true },
+        distinct: ["make", "model"],
+        orderBy: [{ make: "asc" }, { model: "asc" }],
+      }),
+      prisma.vehicle.findMany({
+        where: metaWhere,
+        select: { serviceHistory: true },
+        distinct: ["serviceHistory"],
+        orderBy: { serviceHistory: "asc" },
+      }),
+      prisma.vehicle.findMany({
+        where: {
+          ...metaWhere,
+          location: { not: "" },
+        },
+        select: { location: true },
+        distinct: ["location"],
+        orderBy: { location: "asc" },
+      }),
+    ]);
 
   const yearMin = bounds._min.year ?? new Date().getFullYear() - 10;
   const yearMax = bounds._max.year ?? new Date().getFullYear();
@@ -138,6 +157,7 @@ export async function queryVehicleBrowse(
       makes: makes.map((row) => row.make),
       modelOptions: modelOptions.map((row) => ({ make: row.make, model: row.model })),
       serviceHistories: serviceHistories.map((row) => row.serviceHistory),
+      locations: locations.map((row) => row.location),
     },
   };
 }

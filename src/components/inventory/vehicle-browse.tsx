@@ -31,6 +31,7 @@ type BrowseVehicle = {
   trim: string;
   odometer: number;
   price: number;
+  location?: string;
   licensePlateNumber: string;
   status?: string;
   photos: { url: string }[];
@@ -45,6 +46,7 @@ type VehicleBrowseProps = {
   searchPlaceholder?: string;
   sortSelectId?: string;
   showStatus?: boolean;
+  showStatusFilter?: boolean;
 };
 
 export function VehicleBrowse({
@@ -53,9 +55,10 @@ export function VehicleBrowse({
   vehicleBasePath,
   loadingLabel = "Loading vehicles...",
   emptyMessage = "No vehicles match your search or filters.",
-  searchPlaceholder = "Search by make, model, trim, rego, or year...",
+  searchPlaceholder = "Search by make, model, trim, rego, location, or year...",
   sortSelectId = "vehicle-browse-sort",
   showStatus = false,
+  showStatusFilter = false,
 }: VehicleBrowseProps) {
   const [vehicles, setVehicles] = useState<BrowseVehicle[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -69,7 +72,7 @@ export function VehicleBrowse({
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<VehicleBrowseSort>("newest");
-  const [viewMode, setViewMode] = useState<VehicleBrowseViewMode>("grid");
+  const [viewMode, setViewMode] = useState<VehicleBrowseViewMode>("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [draftFilters, setDraftFilters] = useState<InventoryFilterValues>(
@@ -228,6 +231,7 @@ export function VehicleBrowse({
               activeCount={activeFilterCount}
               onApply={applyFilters}
               onClear={clearFilters}
+              showStatusFilter={showStatusFilter}
             />
 
             <div className="flex items-center gap-2">

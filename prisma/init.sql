@@ -51,6 +51,7 @@ CREATE TABLE "Vehicle" (
     "trim" TEXT NOT NULL,
     "odometer" INTEGER NOT NULL,
     "price" INTEGER NOT NULL,
+    "location" TEXT NOT NULL DEFAULT '',
     "numberOfKeys" INTEGER NOT NULL,
     "vehicleDamage" TEXT NOT NULL,
     "serviceHistory" TEXT NOT NULL,
@@ -150,6 +151,8 @@ CREATE INDEX "Vehicle_make_model_year_idx" ON "Vehicle"("make", "model", "year")
 CREATE INDEX "Vehicle_odometer_idx" ON "Vehicle"("odometer");
 
 CREATE INDEX "Vehicle_price_idx" ON "Vehicle"("price");
+
+CREATE INDEX "Vehicle_location_idx" ON "Vehicle"("location");
 
 -- CreateIndex
 CREATE INDEX "VehiclePhoto_vehicleId_idx" ON "VehiclePhoto"("vehicleId");

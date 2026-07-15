@@ -1,7 +1,6 @@
 import { PhotoGallery } from "@/components/photo-gallery";
 import { StatusBadge } from "@/components/disclaimer";
 import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
-import { cn } from "@/lib/utils";
 
 type VehicleDetailContentProps = {
   vehicle: VehicleDetails & {
@@ -34,10 +33,12 @@ export function VehicleDetailContent({
             </h1>
             {badgeStatus && <StatusBadge status={badgeStatus} />}
           </div>
-          {vehicle.price > 0 && (
+          {vehicle.price > 0 ? (
             <p className="text-2xl font-semibold text-tesla-red sm:text-3xl">
               {formatVehiclePrice(vehicle.price)}
             </p>
+          ) : (
+            <p className="text-lg font-medium text-muted-foreground sm:text-xl">Unpriced</p>
           )}
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
           {vehicle.listedBy && (

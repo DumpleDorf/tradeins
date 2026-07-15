@@ -23,7 +23,7 @@ export default function InventoryPage() {
         <div className="mt-8">
           <VehicleBrowse
             apiEndpoint="/api/inventory"
-            storageKey="inventory-view-mode"
+            storageKey="inventory-view-mode-v2"
             vehicleBasePath="/vehicles/"
             loadingLabel="Loading inventory..."
             sortSelectId="inventory-sort"

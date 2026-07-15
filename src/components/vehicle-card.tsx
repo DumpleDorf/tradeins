@@ -14,6 +14,7 @@ type VehicleCardProps = {
     trim: string;
     odometer: number;
     price: number;
+    location?: string;
     licensePlateNumber: string;
     status?: string;
     photos: { url: string }[];
@@ -76,6 +77,7 @@ export function VehicleCard({ vehicle, href, showStatus, compact }: VehicleCardP
           >
             <span>{formatOdometer(vehicle.odometer)}</span>
             <span>Plate {vehicle.licensePlateNumber}</span>
+            {vehicle.location ? <span>{vehicle.location}</span> : null}
           </div>
         </CardContent>
       </Card>

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Disclaimer } from "@/components/disclaimer";
 import { LoadingSpinner } from "@/components/loading-overlay";
 import { LoginForm } from "@/components/login-form";
 import { Button } from "@/components/ui/button";
@@ -59,8 +58,7 @@ export function HomeHero() {
               Wholesale Portal
             </h1>
             <p className="hero-text-shadow mx-auto mt-6 max-w-xl text-lg text-white/90">
-              Tesla employees list trade-in vehicles. Approved wholesale partners browse
-              inventory and purchase vehicles for your company.
+              Browse and Reserve Available Wholesaler-Ready Inventory
             </p>
 
             {isLoggedIn ? (
@@ -86,10 +84,6 @@ export function HomeHero() {
                 </Button>
               </div>
             )}
-
-            <div className="mx-auto mt-12 w-full max-w-lg">
-              <Disclaimer variant="hero" />
-            </div>
           </>
         )}
       </div>

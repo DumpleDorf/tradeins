@@ -31,6 +31,7 @@ export const DEFAULT_VEHICLE_BROWSE_META: InventoryMeta = {
   makes: [],
   modelOptions: [],
   serviceHistories: [],
+  locations: [],
 };
 
 export function vehicleBrowseFiltersToParams(
@@ -46,6 +47,9 @@ export function vehicleBrowseFiltersToParams(
   if (filters.model) params.set("model", filters.model);
   if (filters.vehicleDamage) params.set("vehicleDamage", filters.vehicleDamage);
   if (filters.serviceHistory) params.set("serviceHistory", filters.serviceHistory);
+  if (filters.pricing) params.set("pricing", filters.pricing);
+  if (filters.location) params.set("location", filters.location);
+  if (filters.status) params.set("status", filters.status);
   if (filters.yearRange[0] > meta.yearMin) params.set("yearMin", String(filters.yearRange[0]));
   if (filters.yearRange[1] < meta.yearMax) params.set("yearMax", String(filters.yearRange[1]));
   if (filters.odometerRange[0] > meta.odometerMin) {
