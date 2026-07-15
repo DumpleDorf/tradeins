@@ -60,6 +60,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   let partnerCompany: string | null = null;
+  let partnerUserName: string | null = null;
+  let partnerContactName: string | null = null;
+  let partnerEmail: string | null = null;
   if (needsPartner && partnerId) {
     const partner = await prisma.user.findUnique({
       where: { id: partnerId },
@@ -69,6 +72,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Invalid wholesaler selected" }, { status: 400 });
     }
     partnerCompany = partner.partnerProfile.companyName;
+    partnerUserName = partner.name;
+    partnerContactName = partner.partnerProfile.contactName;
+    partnerEmail = partner.email;
   }
 
   try {
@@ -107,6 +113,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         toStatus: status,
         partnerId: partnerId ?? null,
         partnerCompany,
+        partnerUserName,
+        partnerContactName,
+        partnerEmail,
         comment: comment?.trim() || null,
       },
     });

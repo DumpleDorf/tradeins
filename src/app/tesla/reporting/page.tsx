@@ -24,23 +24,26 @@ type ReportingData = {
     listedLast30Days: number;
   };
   makeBreakdown: { make: string; count: number }[];
-  reservedVehicles: {
-    id: string;
-    year: number;
-    make: string;
-    model: string;
-    trim: string;
-    price: number;
-    status: string;
-    licensePlateNumber: string;
-    photoUrl: string | null;
-    reservedAt: string | null;
-    partner: {
-      name: string;
-      email: string;
-      companyName: string | null;
-    } | null;
-  }[];
+  reservedVehicles: ReportingVehicle[];
+  soldVehicles: ReportingVehicle[];
+};
+
+type ReportingVehicle = {
+  id: string;
+  year: number;
+  make: string;
+  model: string;
+  trim: string;
+  price: number;
+  status: string;
+  licensePlateNumber: string;
+  photoUrl: string | null;
+  reservedAt: string | null;
+  partner: {
+    name: string;
+    email: string;
+    companyName: string | null;
+  } | null;
 };
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -53,6 +56,85 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
         <p className="text-2xl font-semibold tracking-tight">{value}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function VehiclePartnerList({
+  title,
+  emptyMessage,
+  vehicles,
+  dateLabel,
+}: {
+  title: string;
+  emptyMessage: string;
+  vehicles: ReportingVehicle[];
+  dateLabel: string;
+}) {
+  return (
+    <section>
+      <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+      {vehicles.length === 0 ? (
+        <p className="text-muted-foreground">{emptyMessage}</p>
+      ) : (
+        <div className="space-y-3">
+          {vehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              className="flex flex-col gap-4 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm sm:flex-row sm:items-center"
+            >
+              <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-sm bg-muted">
+                {vehicle.photoUrl ? (
+                  <VehicleImage
+                    src={vehicle.photoUrl}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="112px"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    No photo
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/tesla/listings/${vehicle.id}`}
+                    className="font-semibold hover:text-tesla-red"
+                  >
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </Link>
+                  <StatusBadge status={vehicle.status} />
+                </div>
+                <p className="line-clamp-1 text-sm text-muted-foreground">{vehicle.trim}</p>
+                <p className="text-sm text-muted-foreground">
+                  Plate {vehicle.licensePlateNumber} · {formatVehiclePrice(vehicle.price)}
+                </p>
+              </div>
+              <div className="shrink-0 text-sm sm:text-right">
+                {vehicle.partner ? (
+                  <>
+                    <p className="font-medium">
+                      {vehicle.partner.companyName ?? vehicle.partner.name}
+                    </p>
+                    <p className="text-muted-foreground">{vehicle.partner.name}</p>
+                    <p className="text-muted-foreground">{vehicle.partner.email}</p>
+                    {vehicle.reservedAt && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {dateLabel} {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">No wholesaler record</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -110,69 +192,19 @@ export default function TeslaReportingPage() {
             </section>
           )}
 
-          <section>
-            <h2 className="mb-4 text-lg font-semibold">Currently reserved vehicles</h2>
-            {data.reservedVehicles.length === 0 ? (
-              <p className="text-muted-foreground">No vehicles are currently reserved.</p>
-            ) : (
-              <div className="space-y-3">
-                {data.reservedVehicles.map((vehicle) => (
-                  <div
-                    key={vehicle.id}
-                    className="flex flex-col gap-4 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm sm:flex-row sm:items-center"
-                  >
-                    <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-sm bg-muted">
-                      {vehicle.photoUrl ? (
-                        <VehicleImage
-                          src={vehicle.photoUrl}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="112px"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                          No photo
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={`/tesla/listings/${vehicle.id}`}
-                          className="font-semibold hover:text-tesla-red"
-                        >
-                          {vehicle.year} {vehicle.make} {vehicle.model}
-                        </Link>
-                        <StatusBadge status={vehicle.status} />
-                      </div>
-                      <p className="line-clamp-1 text-sm text-muted-foreground">{vehicle.trim}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Plate {vehicle.licensePlateNumber} · {formatVehiclePrice(vehicle.price)}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-sm sm:text-right">
-                      {vehicle.partner ? (
-                        <>
-                          <p className="font-medium">
-                            {vehicle.partner.companyName ?? vehicle.partner.name}
-                          </p>
-                          <p className="text-muted-foreground">{vehicle.partner.email}</p>
-                          {vehicle.reservedAt && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Reserved {new Date(vehicle.reservedAt).toLocaleDateString("en-AU")}
-                            </p>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-muted-foreground">No active reservation record</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+          <VehiclePartnerList
+            title="Currently reserved vehicles"
+            emptyMessage="No vehicles are currently reserved."
+            vehicles={data.reservedVehicles}
+            dateLabel="Reserved"
+          />
+
+          <VehiclePartnerList
+            title="Sold vehicles"
+            emptyMessage="No sold vehicles yet."
+            vehicles={data.soldVehicles ?? []}
+            dateLabel="Reserved"
+          />
         </div>
       )}
     </PageShell>

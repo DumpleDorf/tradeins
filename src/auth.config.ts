@@ -4,38 +4,13 @@ export const authConfig = {
   trustHost: true,
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/?signin=1",
+    // Path only — query strings here get encoded into the pathname by Auth.js
+    signIn: "/login",
   },
   providers: [],
   callbacks: {
-    authorized({ auth, request }) {
-      const { pathname } = request.nextUrl;
-      const isLoggedIn = !!auth?.user;
-
-      if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
-        return true;
-      }
-
-      if (!isLoggedIn) return false;
-
-      const role = auth.user.role;
-
-      if (pathname.startsWith("/admin")) {
-        return role === "SUPER_ADMIN";
-      }
-
-      if (pathname.startsWith("/tesla")) {
-        return role === "TESLA_EMPLOYEE" || role === "SUPER_ADMIN";
-      }
-
-      if (
-        pathname.startsWith("/inventory") ||
-        pathname.startsWith("/reservations") ||
-        pathname.startsWith("/vehicles")
-      ) {
-        return role === "PARTNER";
-      }
-
+    // Role and auth redirects are handled in middleware.ts
+    authorized() {
       return true;
     },
     async jwt({ token, user }) {

@@ -81,7 +81,7 @@ export default function ReservationDetailPage() {
                 <h2 className="mb-2 font-semibold">Reservation status</h2>
                 <p className="text-sm text-muted-foreground">
                   This reservation marks your intention to buy. The vehicle is hidden from other
-                  wholesalers while Tesla staff confirm the sale (Available → Reserved → Sold).
+                  wholesalers while Tesla staff confirm the sale.
                 </p>
               </div>
             }

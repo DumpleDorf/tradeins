@@ -69,6 +69,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         reservationId: result.reservation.id,
         partnerId: session.user.id,
         partnerCompany: partner.partnerProfile.companyName,
+        partnerUserName: partner.name,
+        partnerContactName: partner.partnerProfile.contactName,
+        partnerEmail: partner.email,
         notes,
       },
     });

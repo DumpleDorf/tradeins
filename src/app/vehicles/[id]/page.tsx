@@ -128,7 +128,7 @@ export default function VehicleDetailPage() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               This will reserve the vehicle under your company as an intention to buy and notify
-              Tesla staff to confirm the sale (Available → Reserved → Sold).
+              Tesla staff to confirm the sale.
             </p>
             <div className="mt-4 space-y-2">
               <Label htmlFor="reservation-notes">Reservation notes (optional)</Label>

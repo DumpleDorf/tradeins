@@ -27,4 +27,4 @@ export const DISCLAIMER =
   "Reserving a vehicle marks your intention to buy and hides it from other wholesalers. Tesla staff will confirm the sale by marking it as sold.";
 
 export const LISTING_DISCLAIMER =
-  "Flow: Available → Reserved → Sold. A reservation is an intention to buy. Mark reserved vehicles as sold once the sale is confirmed.";
+  "Reserved vehicles are held for the wholesaler who reserved them. Mark vehicles as sold once the sale is confirmed.";

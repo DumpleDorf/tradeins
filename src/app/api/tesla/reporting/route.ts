@@ -1,8 +1,65 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { VehicleStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canManageListings } from "@/lib/rbac";
+
+function mapVehicleWithPartner(
+  vehicle: {
+    id: string;
+    year: number;
+    make: string;
+    model: string;
+    trim: string;
+    price: number;
+    status: VehicleStatus;
+    licensePlateNumber: string;
+    photos: { url: string }[];
+    reservations: {
+      reservedAt: Date;
+      partner: {
+        name: string;
+        email: string;
+        partnerProfile: { companyName: string } | null;
+      };
+    }[];
+  }
+) {
+  const reservation = vehicle.reservations[0];
+  return {
+    id: vehicle.id,
+    year: vehicle.year,
+    make: vehicle.make,
+    model: vehicle.model,
+    trim: vehicle.trim,
+    price: vehicle.price,
+    status: vehicle.status,
+    licensePlateNumber: vehicle.licensePlateNumber,
+    photoUrl: vehicle.photos[0]?.url ?? null,
+    reservedAt: reservation?.reservedAt ?? null,
+    partner: reservation
+      ? {
+          name: reservation.partner.name,
+          email: reservation.partner.email,
+          companyName: reservation.partner.partnerProfile?.companyName ?? null,
+        }
+      : null,
+  };
+}
+
+const vehicleWithPartnerInclude = {
+  photos: { orderBy: { sortOrder: "asc" as const }, take: 1 },
+  reservations: {
+    where: { status: "APPROVED" as const },
+    orderBy: { reservedAt: "desc" as const },
+    take: 1,
+    include: {
+      partner: {
+        include: { partnerProfile: true },
+      },
+    },
+  },
+};
 
 export async function GET() {
   const session = await auth();
@@ -17,7 +74,8 @@ export async function GET() {
     odometerAggregate,
     makeBreakdown,
     reservedVehicles,
-    recentListings,
+    soldVehicles,
+    listedLast30Days,
   ] = await Promise.all([
     prisma.vehicle.count(),
     prisma.vehicle.groupBy({
@@ -40,20 +98,15 @@ export async function GET() {
     }),
     prisma.vehicle.findMany({
       where: { status: VehicleStatus.RESERVED },
-      include: {
-        photos: { orderBy: { sortOrder: "asc" }, take: 1 },
-        reservations: {
-          where: { status: "APPROVED" },
-          orderBy: { reservedAt: "desc" },
-          take: 1,
-          include: {
-            partner: {
-              include: { partnerProfile: true },
-            },
-          },
-        },
-      },
+      include: vehicleWithPartnerInclude,
       orderBy: { updatedAt: "desc" },
+      take: 25,
+    }),
+    prisma.vehicle.findMany({
+      where: { status: VehicleStatus.SOLD },
+      include: vehicleWithPartnerInclude,
+      orderBy: { updatedAt: "desc" },
+      take: 25,
     }),
     prisma.vehicle.count({
       where: {
@@ -76,33 +129,13 @@ export async function GET() {
       averagePrice: Math.round(priceAggregate._avg.price ?? 0),
       totalAvailableValue: priceAggregate._sum.price ?? 0,
       averageOdometer: Math.round(odometerAggregate._avg.odometer ?? 0),
-      listedLast30Days: recentListings,
+      listedLast30Days,
     },
     makeBreakdown: makeBreakdown.map((row) => ({
       make: row.make,
       count: row._count._all,
     })),
-    reservedVehicles: reservedVehicles.map((vehicle) => {
-      const reservation = vehicle.reservations[0];
-      return {
-        id: vehicle.id,
-        year: vehicle.year,
-        make: vehicle.make,
-        model: vehicle.model,
-        trim: vehicle.trim,
-        price: vehicle.price,
-        status: vehicle.status,
-        licensePlateNumber: vehicle.licensePlateNumber,
-        photoUrl: vehicle.photos[0]?.url ?? null,
-        reservedAt: reservation?.reservedAt ?? null,
-        partner: reservation
-          ? {
-              name: reservation.partner.name,
-              email: reservation.partner.email,
-              companyName: reservation.partner.partnerProfile?.companyName ?? null,
-            }
-          : null,
-      };
-    }),
+    reservedVehicles: reservedVehicles.map(mapVehicleWithPartner),
+    soldVehicles: soldVehicles.map(mapVehicleWithPartner),
   });
 }

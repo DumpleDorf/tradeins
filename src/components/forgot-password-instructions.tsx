@@ -82,7 +82,7 @@ export function ForgotPasswordInstructions({
           </Button>
         ) : (
           <Link
-            href="/?signin=1"
+            href="/login"
             className={cn(
               "text-sm hover:underline",
               isHero ? "hero-text-shadow text-white/90" : "text-tesla-red"

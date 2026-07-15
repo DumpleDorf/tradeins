@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    router.push("/?signin=1");
+    router.push("/login");
   }
 
   if (!token) {
@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
       <Header />
       <main className="mx-auto max-w-md px-4 py-16">
         <div className="mb-6 flex justify-center">
-          <BackLink href="/?signin=1" label="Back to sign in" />
+          <BackLink href="/login" label="Back to sign in" />
         </div>
         <h1 className="mb-6 text-center text-2xl font-semibold">Set New Password</h1>
         <Suspense fallback={<p>Loading...</p>}>

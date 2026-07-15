@@ -363,7 +363,7 @@ export default function TeslaListingDetailPage() {
                   <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
                     <h2 className="font-semibold">Status</h2>
                     <p className="text-sm text-muted-foreground">
-                      Flow: Available → Reserved → Sold. Reservations are intentions to buy until
+                      Update this listing&apos;s status. Reservations are intentions to buy until
                       staff confirm the sale.
                     </p>
                     {latestReservation && (
@@ -460,6 +460,27 @@ export default function TeslaListingDetailPage() {
                           ? `${log.actor.name} (${log.actor.role})`
                           : "System"}
                       </p>
+                      {typeof log.metadata?.partnerCompany === "string" &&
+                        log.metadata.partnerCompany && (
+                          <p className="mt-1 text-sm">
+                            Wholesaler: {String(log.metadata.partnerCompany)}
+                          </p>
+                        )}
+                      {(typeof log.metadata?.partnerUserName === "string" ||
+                        typeof log.metadata?.partnerContactName === "string") && (
+                        <p className="text-sm text-muted-foreground">
+                          Account:{" "}
+                          {String(
+                            log.metadata.partnerContactName ||
+                              log.metadata.partnerUserName ||
+                              ""
+                          )}
+                          {typeof log.metadata?.partnerEmail === "string" &&
+                            log.metadata.partnerEmail
+                            ? ` (${String(log.metadata.partnerEmail)})`
+                            : ""}
+                        </p>
+                      )}
                       {typeof log.metadata?.comment === "string" && log.metadata.comment && (
                         <p className="mt-2 text-muted-foreground">Comment: {log.metadata.comment}</p>
                       )}
@@ -472,11 +493,6 @@ export default function TeslaListingDetailPage() {
                             {String(log.metadata.fromStatus)} → {String(log.metadata.toStatus)}
                           </p>
                         )}
-                      {typeof log.metadata?.partnerCompany === "string" && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Wholesaler: {String(log.metadata.partnerCompany)}
-                        </p>
-                      )}
                     </li>
                   ))}
                 </ul>
