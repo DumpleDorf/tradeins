@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
 import { LoadingOverlay } from "@/components/loading-overlay";
+import { formatAuditActorLine } from "@/lib/audit-display";
 
 type AuditEntry = {
   id: string;
@@ -11,7 +12,13 @@ type AuditEntry = {
   entityType: string;
   entityId: string;
   createdAt: string;
-  actor: { name: string; email: string; role: string } | null;
+  metadata: Record<string, unknown> | null;
+  actor: {
+    name: string;
+    email: string;
+    role: string;
+    partnerProfile?: { companyName: string } | null;
+  } | null;
 };
 
 export default function TeslaAuditPage() {
@@ -51,7 +58,7 @@ export default function TeslaAuditPage() {
                   {new Date(log.createdAt).toLocaleString("en-AU")}
                 </td>
                 <td className="py-3 pr-4">
-                  {log.actor ? `${log.actor.name} (${log.actor.role})` : "System"}
+                  {formatAuditActorLine(log.actor, log.metadata)}
                 </td>
                 <td className="py-3 pr-4">{log.action}</td>
                 <td className="py-3 pr-4">

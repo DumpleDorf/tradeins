@@ -15,7 +15,7 @@ const links = [
     desc: "Review reservation requests and sold vehicles",
   },
   { href: "/tesla/reporting", title: "Reporting", desc: "Inventory stats and reserved vehicle overview" },
-  { href: "/tesla/partners", title: "Partners", desc: "Invite and manage wholesale partners" },
+  { href: "/tesla/partners", title: "Wholesalers", desc: "Invite and manage wholesaler accounts" },
   { href: "/tesla/audit", title: "Audit Log", desc: "View all platform activity" },
 ];
 

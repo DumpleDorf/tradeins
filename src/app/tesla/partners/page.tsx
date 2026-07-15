@@ -69,7 +69,7 @@ export default function TeslaPartnersPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Failed to create partner");
+      setError(typeof data.error === "string" ? data.error : "Failed to create wholesaler");
       setBusy(false);
       return;
     }
@@ -100,7 +100,7 @@ export default function TeslaPartnersPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Failed to update partner");
+      setError(typeof data.error === "string" ? data.error : "Failed to update wholesaler");
       setBusy(false);
       return;
     }
@@ -121,7 +121,7 @@ export default function TeslaPartnersPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(typeof data.error === "string" ? data.error : "Failed to update partner status");
+      setError(typeof data.error === "string" ? data.error : "Failed to update wholesaler status");
       setBusy(false);
       return;
     }
@@ -137,7 +137,7 @@ export default function TeslaPartnersPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(typeof data.error === "string" ? data.error : "Failed to delete partner");
+      setError(typeof data.error === "string" ? data.error : "Failed to delete wholesaler");
       setBusy(false);
       setDeletingId(null);
       return;
@@ -209,13 +209,13 @@ export default function TeslaPartnersPage() {
 
   return (
     <PageShell>
-      <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading partners..."} />
+      <LoadingOverlay show={loading || busy} label={busy ? "Saving..." : "Loading wholesalers..."} />
 
       <PageHeader
-        title="Partner Accounts"
+        title="Wholesaler Accounts"
         action={
           <Button onClick={() => { setShowCreate(true); setEditingId(null); setError(""); }}>
-            Add Partner
+            Add Wholesaler
           </Button>
         }
       />
@@ -227,7 +227,7 @@ export default function TeslaPartnersPage() {
             null,
             handleCreate,
             () => setShowCreate(false),
-            "Create Partner",
+            "Create Wholesaler",
             true
           )}
 

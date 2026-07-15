@@ -113,7 +113,7 @@ export async function sendPartnerInviteEmail(params: {
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #171A20;">Welcome to the Tesla Trade-Ins Portal</h1>
         <p>Hi ${params.name},</p>
-        <p>Your company <strong>${params.companyName}</strong> has been approved as a wholesale partner.</p>
+        <p>Your company <strong>${params.companyName}</strong> has been approved as a wholesaler.</p>
         <p>Sign in at <a href="${appUrl}/login">${appUrl}/login</a></p>
         <p><strong>Email:</strong> ${params.to}<br/><strong>Temporary password:</strong> ${params.temporaryPassword}</p>
         <p>Please change your password after your first login.</p>

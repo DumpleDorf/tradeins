@@ -12,11 +12,11 @@ export function reservationEmailHtml(params: {
       <div style="border-bottom: 3px solid #E31937; padding-bottom: 16px; margin-bottom: 24px;">
         <h1 style="margin: 0; font-size: 20px;">New Vehicle Reservation</h1>
       </div>
-      <p>A wholesale partner has reserved a trade-in vehicle for purchase.</p>
+      <p>A wholesaler has reserved a trade-in vehicle for purchase.</p>
       <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
         <tr><td style="padding: 8px 0; color: #393C41;">VIN</td><td style="padding: 8px 0;"><strong>${params.vehicleVin}</strong></td></tr>
         <tr><td style="padding: 8px 0; color: #393C41;">Vehicle</td><td style="padding: 8px 0;">${params.vehicleDetails}</td></tr>
-        <tr><td style="padding: 8px 0; color: #393C41;">Partner</td><td style="padding: 8px 0;">${params.partnerCompany}</td></tr>
+        <tr><td style="padding: 8px 0; color: #393C41;">Wholesaler</td><td style="padding: 8px 0;">${params.partnerCompany}</td></tr>
         <tr><td style="padding: 8px 0; color: #393C41;">Contact</td><td style="padding: 8px 0;">${params.contactName} (${params.contactEmail})</td></tr>
         <tr><td style="padding: 8px 0; color: #393C41;">Reserved at</td><td style="padding: 8px 0;">${params.reservedAt.toLocaleString("en-AU")}</td></tr>
       </table>

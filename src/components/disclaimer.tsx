@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { formatUserRoleLabel } from "@/lib/audit-display";
 import { DISCLAIMER, LISTING_DISCLAIMER } from "@/lib/utils";
 
 export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "listing" | "hero" }) {
@@ -17,6 +18,8 @@ export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "lis
   );
 }
 
+const ROLE_STATUSES = new Set(["PARTNER", "TESLA_EMPLOYEE", "SUPER_ADMIN"]);
+
 export function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     AVAILABLE: "bg-green-500/20 text-green-400",
@@ -28,7 +31,14 @@ export function StatusBadge({ status }: { status: string }) {
     PENDING: "bg-orange-500/20 text-orange-400",
     ACTIVE: "bg-green-500/20 text-green-400",
     INACTIVE: "bg-red-500/20 text-red-400",
+    PARTNER: "bg-muted text-muted-foreground",
+    TESLA_EMPLOYEE: "bg-muted text-muted-foreground",
+    SUPER_ADMIN: "bg-muted text-muted-foreground",
   };
+
+  const label = ROLE_STATUSES.has(status)
+    ? formatUserRoleLabel(status)
+    : status.replace(/_/g, " ");
 
   return (
     <span
@@ -37,7 +47,7 @@ export function StatusBadge({ status }: { status: string }) {
         colors[status] ?? "bg-muted text-muted-foreground"
       )}
     >
-      {status.replace(/_/g, " ")}
+      {label}
     </span>
   );
 }

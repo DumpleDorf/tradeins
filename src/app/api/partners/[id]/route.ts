@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+    return NextResponse.json({ error: "Wholesaler not found" }, { status: 404 });
   }
 
   if (parsed.data.email && parsed.data.email.toLowerCase() !== existing.email) {
@@ -87,7 +87,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Partner not found" }, { status: 404 });
+    return NextResponse.json({ error: "Wholesaler not found" }, { status: 404 });
   }
 
   await prisma.$transaction(async (tx) => {

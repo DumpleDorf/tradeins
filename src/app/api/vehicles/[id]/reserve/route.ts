@@ -21,7 +21,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   });
 
   if (!partner?.partnerProfile) {
-    return NextResponse.json({ error: "Partner profile not found" }, { status: 400 });
+    return NextResponse.json({ error: "Wholesaler profile not found" }, { status: 400 });
   }
 
   const body = await request.json().catch(() => ({}));

@@ -12,6 +12,7 @@ import { VehicleFormFields } from "@/components/vehicle-form-fields";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatApiError } from "@/lib/api-errors";
+import { formatAuditActorLine, resolveWholesalerCompany } from "@/lib/audit-display";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 import { type VehicleDetails } from "@/lib/vehicle";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,12 @@ type AuditEntry = {
   action: string;
   createdAt: string;
   metadata: Record<string, unknown> | null;
-  actor: { name: string; email: string; role: string } | null;
+  actor: {
+    name: string;
+    email: string;
+    role: string;
+    partnerProfile?: { companyName: string; contactName?: string } | null;
+  } | null;
 };
 
 const NON_EDITABLE_STATUSES = ["RESERVED", "SOLD"];
@@ -444,7 +450,21 @@ export default function TeslaListingDetailPage() {
                 <p className="text-sm text-muted-foreground">No audit events for this vehicle yet.</p>
               ) : (
                 <ul className="space-y-3">
-                  {auditLogs.map((log) => (
+                  {auditLogs.map((log) => {
+                    const wholesalerCompany =
+                      log.actor?.role === "PARTNER"
+                        ? null
+                        : resolveWholesalerCompany(log.actor, log.metadata);
+                    const wholesalerPerson =
+                      typeof log.metadata?.partnerUserName === "string" &&
+                      log.metadata.partnerUserName
+                        ? String(log.metadata.partnerUserName)
+                        : typeof log.metadata?.partnerContactName === "string" &&
+                            log.metadata.partnerContactName
+                          ? String(log.metadata.partnerContactName)
+                          : null;
+
+                    return (
                     <li
                       key={log.id}
                       className="rounded-sm border border-border/50 bg-background/30 px-3 py-3 text-sm"
@@ -456,31 +476,14 @@ export default function TeslaListingDetailPage() {
                         </p>
                       </div>
                       <p className="mt-1 text-muted-foreground">
-                        {log.actor
-                          ? `${log.actor.name} (${log.actor.role})`
-                          : "System"}
+                        {formatAuditActorLine(log.actor, log.metadata)}
                       </p>
-                      {typeof log.metadata?.partnerCompany === "string" &&
-                        log.metadata.partnerCompany && (
+                      {wholesalerCompany && (
                           <p className="mt-1 text-sm">
-                            Wholesaler: {String(log.metadata.partnerCompany)}
+                            Wholesaler: {wholesalerCompany}
+                            {wholesalerPerson ? ` · ${wholesalerPerson}` : ""}
                           </p>
                         )}
-                      {(typeof log.metadata?.partnerUserName === "string" ||
-                        typeof log.metadata?.partnerContactName === "string") && (
-                        <p className="text-sm text-muted-foreground">
-                          Account:{" "}
-                          {String(
-                            log.metadata.partnerContactName ||
-                              log.metadata.partnerUserName ||
-                              ""
-                          )}
-                          {typeof log.metadata?.partnerEmail === "string" &&
-                            log.metadata.partnerEmail
-                            ? ` (${String(log.metadata.partnerEmail)})`
-                            : ""}
-                        </p>
-                      )}
                       {typeof log.metadata?.comment === "string" && log.metadata.comment && (
                         <p className="mt-2 text-muted-foreground">Comment: {log.metadata.comment}</p>
                       )}
@@ -494,7 +497,8 @@ export default function TeslaListingDetailPage() {
                           </p>
                         )}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               )}
             </div>

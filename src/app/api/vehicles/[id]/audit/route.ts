@@ -35,7 +35,14 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       ],
     },
     include: {
-      actor: { select: { name: true, email: true, role: true } },
+      actor: {
+        select: {
+          name: true,
+          email: true,
+          role: true,
+          partnerProfile: { select: { companyName: true, contactName: true } },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
     take: 100,

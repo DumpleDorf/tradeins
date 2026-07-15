@@ -15,7 +15,25 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+  const vehicle = await prisma.vehicle.findUnique({
+    where: { id },
+    include: {
+      reservations: {
+        orderBy: { reservedAt: "desc" },
+        take: 1,
+        include: {
+          partner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              partnerProfile: { select: { companyName: true, contactName: true } },
+            },
+          },
+        },
+      },
+    },
+  });
   if (!vehicle) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -38,12 +56,22 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     data: { status: VehicleStatus.SOLD },
   });
 
+  const partner = vehicle.reservations[0]?.partner;
+
   logAudit({
     actorId: session.user.id,
     action: "VEHICLE_MARKED_SOLD",
     entityType: "Vehicle",
     entityId: id,
-    metadata: { vin: vehicle.vin, comment },
+    metadata: {
+      vin: vehicle.vin,
+      comment,
+      partnerId: partner?.id ?? null,
+      partnerCompany: partner?.partnerProfile?.companyName ?? null,
+      partnerUserName: partner?.name ?? null,
+      partnerContactName: partner?.partnerProfile?.contactName ?? null,
+      partnerEmail: partner?.email ?? null,
+    },
   });
 
   return NextResponse.json(updated);
