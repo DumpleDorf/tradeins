@@ -33,6 +33,7 @@ type ReservationInfo = {
   id: string;
   notes: string | null;
   reservedAt: string;
+  status?: string;
   partner: {
     id: string;
     name: string;
@@ -132,8 +133,10 @@ export default function TeslaListingDetailPage() {
         .filter((photo) => !photosToRemove.includes(photo.id))
         .map((photo) => ({ id: photo.id, url: photo.url }))
     );
-    const latestPartner = vehicle.reservations?.[0]?.partner?.id;
-    if (latestPartner) setPartnerId(latestPartner);
+    const currentPartner =
+      vehicle.reservations?.find((r) => r.status === "APPROVED")?.partner?.id ??
+      vehicle.reservations?.[0]?.partner?.id;
+    if (currentPartner) setPartnerId(currentPartner);
     if (vehicle.status === "AVAILABLE") setNextStatus("RESERVED");
     else if (vehicle.status === "RESERVED") setNextStatus("SOLD");
     else setNextStatus("AVAILABLE");
@@ -141,7 +144,11 @@ export default function TeslaListingDetailPage() {
 
   const canEdit = vehicle && !NON_EDITABLE_STATUSES.includes(vehicle.status);
   const canDelete = canEdit;
-  const latestReservation = vehicle?.reservations?.[0];
+  const latestReservation =
+    vehicle?.reservations?.find((r) => r.status === "APPROVED") ?? vehicle?.reservations?.[0];
+  const currentWholesalerId = latestReservation?.partner?.id ?? "";
+  const showCurrentWholesaler =
+    !!latestReservation && (vehicle?.status === "RESERVED" || vehicle?.status === "SOLD");
   const needsPartner = nextStatus === "RESERVED" || nextStatus === "SOLD";
 
   function cancelEdit() {
@@ -369,12 +376,15 @@ export default function TeslaListingDetailPage() {
                   <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-5 backdrop-blur-sm">
                     <h2 className="font-semibold">Status</h2>
                     <p className="text-sm text-muted-foreground">
-                      Update this listing&apos;s status. Reservations are intentions to buy until
+                      Change this listing&apos;s status. A reservation is an intention to buy until
                       staff confirm the sale.
                     </p>
-                    {latestReservation && (
+                    {showCurrentWholesaler && latestReservation && (
                       <div className="rounded-sm border border-border/60 bg-background/40 p-3 text-sm">
-                        <p className="font-medium">
+                        <p className="font-medium text-muted-foreground">
+                          {vehicle.status === "SOLD" ? "Sold to:" : "Currently reserved by:"}
+                        </p>
+                        <p className="mt-0.5 font-medium">
                           {latestReservation.partner.partnerProfile?.companyName ??
                             latestReservation.partner.name}
                         </p>
@@ -416,12 +426,22 @@ export default function TeslaListingDetailPage() {
                           required
                         >
                           <option value="">Select wholesaler</option>
-                          {partners.map((partner) => (
-                            <option key={partner.id} value={partner.id}>
-                              {partner.partnerProfile?.companyName ?? partner.name} (
-                              {partner.email})
-                            </option>
-                          ))}
+                          {partners.map((partner) => {
+                            const company =
+                              partner.partnerProfile?.companyName ?? partner.name;
+                            const isCurrent = partner.id === currentWholesalerId;
+                            const currentSuffix =
+                              isCurrent && vehicle.status === "SOLD"
+                                ? " (currently sold to)"
+                                : isCurrent && vehicle.status === "RESERVED"
+                                  ? " (currently reserved)"
+                                  : "";
+                            return (
+                              <option key={partner.id} value={partner.id}>
+                                {company} ({partner.email}){currentSuffix}
+                              </option>
+                            );
+                          })}
                         </select>
                       </div>
                     )}
