@@ -330,8 +330,7 @@ export default function TeslaReservationsPage() {
                 </p>
                 {vehicle.partner && (
                   <p className="text-sm">
-                    Wholesaler: {vehicle.partner.companyName ?? vehicle.partner.name}
-                    {vehicle.partner.contactName ? ` — ${vehicle.partner.contactName}` : ""} (
+                    Wholesaler: {vehicle.partner.companyName ?? vehicle.partner.name} (
                     {vehicle.partner.email})
                   </p>
                 )}

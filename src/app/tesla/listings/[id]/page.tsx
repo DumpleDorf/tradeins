@@ -493,14 +493,6 @@ export default function TeslaListingDetailPage() {
                       log.actor?.role === "PARTNER"
                         ? null
                         : resolveWholesalerCompany(log.actor, log.metadata);
-                    const wholesalerPerson =
-                      typeof log.metadata?.partnerUserName === "string" &&
-                      log.metadata.partnerUserName
-                        ? String(log.metadata.partnerUserName)
-                        : typeof log.metadata?.partnerContactName === "string" &&
-                            log.metadata.partnerContactName
-                          ? String(log.metadata.partnerContactName)
-                          : null;
 
                     return (
                     <li
@@ -519,7 +511,6 @@ export default function TeslaListingDetailPage() {
                       {wholesalerCompany && (
                           <p className="mt-1 text-sm">
                             Wholesaler: {wholesalerCompany}
-                            {wholesalerPerson ? ` · ${wholesalerPerson}` : ""}
                           </p>
                         )}
                       {typeof log.metadata?.comment === "string" && log.metadata.comment && (

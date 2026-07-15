@@ -39,7 +39,7 @@ export function resolveWholesalerCompany(
 
 /**
  * Actor line for audit UIs.
- * Wholesaler example: `Kane Murray · Acme Motors (Wholesaler)`
+ * Wholesaler example: `Acme Motors (Wholesaler)`
  * Tesla example: `Kane Murray (Tesla Employee)`
  */
 export function formatAuditActorLine(
@@ -49,19 +49,11 @@ export function formatAuditActorLine(
   if (!actor) return "System";
 
   const roleLabel = formatUserRoleLabel(actor.role);
-  const name =
-    actor.role === "PARTNER"
-      ? metaString(metadata, "partnerUserName") ||
-        metaString(metadata, "partnerContactName") ||
-        actor.name
-      : actor.name;
 
   if (actor.role === "PARTNER") {
     const company = resolveWholesalerCompany(actor, metadata);
-    return company
-      ? `${name} · ${company} (${roleLabel})`
-      : `${name} (${roleLabel})`;
+    return company ? `${company} (${roleLabel})` : `(${roleLabel})`;
   }
 
-  return `${name} (${roleLabel})`;
+  return `${actor.name} (${roleLabel})`;
 }

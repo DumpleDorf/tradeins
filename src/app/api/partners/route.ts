@@ -44,19 +44,20 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(parsed.data.password);
+    const displayName = parsed.data.companyName.trim();
 
     const partner = await prisma.user.create({
       data: {
         email: parsed.data.email.toLowerCase(),
-        name: parsed.data.name,
+        name: parsed.data.name?.trim() || displayName,
         passwordHash,
         role: UserRole.PARTNER,
         status: "ACTIVE",
         partnerProfile: {
           create: {
             companyName: parsed.data.companyName,
-            contactName: parsed.data.contactName,
-            contactPhone: parsed.data.contactPhone,
+            contactName: parsed.data.contactName?.trim() || displayName,
+            contactPhone: parsed.data.contactPhone || null,
           },
         },
       },

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
 import { LoadingOverlay } from "@/components/loading-overlay";
+import { RequiredAsterisk, RequiredFieldsHint } from "@/components/vehicle-form-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,13 +22,7 @@ type Partner = {
   } | null;
 };
 
-const partnerFields = [
-  ["email", "Email"],
-  ["name", "Contact Name"],
-  ["companyName", "Company Name"],
-  ["contactName", "Primary Contact"],
-  ["contactPhone", "Phone (optional)"],
-] as const;
+const actionButtonClassName = "w-[7.25rem] shrink-0";
 
 export default function TeslaPartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
@@ -155,46 +150,73 @@ export default function TeslaPartnersPage() {
     submitLabel: string,
     passwordRequired: boolean
   ) {
+    const formId = partner?.id ?? "new";
+
     return (
       <form
         onSubmit={onSubmit}
         className="mt-4 grid gap-4 rounded-sm border border-border bg-card p-4 sm:grid-cols-2"
       >
-        {partnerFields.map(([name, label]) => {
-          let defaultValue = "";
-          if (partner) {
-            if (name === "companyName" || name === "contactName") {
-              defaultValue = partner.partnerProfile?.[name] ?? "";
-            } else if (name === "contactPhone") {
-              defaultValue = partner.partnerProfile?.contactPhone ?? "";
-            } else {
-              defaultValue = partner[name];
-            }
-          }
-
-          return (
-          <div key={name} className="space-y-1">
-            <Label htmlFor={`${partner?.id ?? "new"}-${name}`}>{label}</Label>
-            <Input
-              id={`${partner?.id ?? "new"}-${name}`}
-              name={name}
-              defaultValue={defaultValue}
-              required={name !== "contactPhone"}
-            />
-          </div>
-          );
-        })}
-        <div className="space-y-1 sm:col-span-2">
-          <Label htmlFor={`${partner?.id ?? "new"}-password`}>
-            Password{passwordRequired ? "" : " (leave blank to keep current)"}
+        <div className="sm:col-span-2">
+          <RequiredFieldsHint />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`${formId}-companyName`}>
+            Company Name <RequiredAsterisk />
           </Label>
           <Input
-            id={`${partner?.id ?? "new"}-password`}
+            id={`${formId}-companyName`}
+            name="companyName"
+            defaultValue={partner?.partnerProfile?.companyName ?? ""}
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor={`${formId}-email`}>
+            Primary Contact (email) <RequiredAsterisk />
+          </Label>
+          <Input
+            id={`${formId}-email`}
+            name="email"
+            type="email"
+            defaultValue={partner?.email ?? ""}
+            required
+          />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <Label htmlFor={`${formId}-contactPhone`}>Phone (optional)</Label>
+          <Input
+            id={`${formId}-contactPhone`}
+            name="contactPhone"
+            type="tel"
+            defaultValue={partner?.partnerProfile?.contactPhone ?? ""}
+          />
+        </div>
+        <div className="space-y-2 rounded-sm border border-border/60 bg-background/40 p-3 sm:col-span-2">
+          <div className="space-y-1">
+            <Label htmlFor={`${formId}-password`}>
+              {passwordRequired ? "Password" : "Change Password"}
+              {passwordRequired ? (
+                <>
+                  {" "}
+                  <RequiredAsterisk />
+                </>
+              ) : null}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {passwordRequired
+                ? "Set the initial password for this wholesaler account."
+                : "Fill this field to change the account password. Leave blank to keep the current password."}
+            </p>
+          </div>
+          <Input
+            id={`${formId}-password`}
             name="password"
             type="password"
             minLength={8}
             required={passwordRequired}
             autoComplete="new-password"
+            placeholder={passwordRequired ? undefined : "Leave blank to keep current password"}
           />
         </div>
         <div className="flex gap-2 sm:col-span-2">
@@ -234,20 +256,24 @@ export default function TeslaPartnersPage() {
         <div className="mt-8 space-y-3">
           {partners.map((p) => (
             <div key={p.id} className="rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{p.partnerProfile?.companyName}</span>
                     <StatusBadge status={p.status} />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {p.email} · {p.partnerProfile?.contactName}
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {p.email}
+                    {p.partnerProfile?.contactPhone
+                      ? ` · ${p.partnerProfile.contactPhone}`
+                      : ""}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 flex-wrap justify-end gap-2">
                   <Button
                     size="sm"
                     variant="outline"
+                    className={actionButtonClassName}
                     onClick={() => {
                       setEditingId(editingId === p.id ? null : p.id);
                       setShowCreate(false);
@@ -257,25 +283,55 @@ export default function TeslaPartnersPage() {
                     {editingId === p.id ? "Close" : "Edit"}
                   </Button>
                   {p.status === "ACTIVE" ? (
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setPartnerStatus(p.id, "INACTIVE")}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={actionButtonClassName}
+                      disabled={busy}
+                      onClick={() => setPartnerStatus(p.id, "INACTIVE")}
+                    >
                       Deactivate
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" disabled={busy} onClick={() => setPartnerStatus(p.id, "ACTIVE")}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={actionButtonClassName}
+                      disabled={busy}
+                      onClick={() => setPartnerStatus(p.id, "ACTIVE")}
+                    >
                       Activate
                     </Button>
                   )}
                   {deletingId === p.id ? (
                     <>
-                      <Button size="sm" variant="destructive" disabled={busy} onClick={() => handleDelete(p.id)}>
-                        Confirm Delete
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className={actionButtonClassName}
+                        disabled={busy}
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        Confirm
                       </Button>
-                      <Button size="sm" variant="outline" disabled={busy} onClick={() => setDeletingId(null)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={actionButtonClassName}
+                        disabled={busy}
+                        onClick={() => setDeletingId(null)}
+                      >
                         Cancel
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="destructive" disabled={busy} onClick={() => setDeletingId(p.id)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className={actionButtonClassName}
+                      disabled={busy}
+                      onClick={() => setDeletingId(p.id)}
+                    >
                       Delete
                     </Button>
                   )}

@@ -28,9 +28,10 @@ export const vehicleSchema = z.object({
 
 export const partnerInviteSchema = z.object({
   email: z.string().email(),
-  name: z.string().min(1),
   companyName: z.string().min(1),
-  contactName: z.string().min(1),
+  /** Kept for DB compatibility; UI no longer collects a person name. */
+  name: z.string().optional(),
+  contactName: z.string().optional(),
   contactPhone: z.string().optional(),
   password: z.string().min(8),
 });
@@ -39,7 +40,7 @@ export const partnerUpdateSchema = z.object({
   email: z.string().email().optional(),
   name: z.string().min(1).optional(),
   companyName: z.string().min(1).optional(),
-  contactName: z.string().min(1).optional(),
+  contactName: z.string().optional(),
   contactPhone: z.string().optional(),
   password: z.string().min(8).optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),

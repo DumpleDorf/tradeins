@@ -41,20 +41,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const { companyName, contactName, contactPhone, password, ...userFields } = parsed.data;
+  const profileName = companyName?.trim() || contactName?.trim();
 
   const partner = await prisma.user.update({
     where: { id, role: "PARTNER" },
     data: {
       ...userFields,
       ...(userFields.email ? { email: userFields.email.toLowerCase() } : {}),
+      ...(companyName && !userFields.name ? { name: companyName.trim() } : {}),
       ...(password ? { passwordHash: await hashPassword(password) } : {}),
       partnerProfile:
-        companyName || contactName || contactPhone !== undefined
+        companyName || contactName !== undefined || contactPhone !== undefined
           ? {
               update: {
                 ...(companyName ? { companyName } : {}),
-                ...(contactName ? { contactName } : {}),
-                ...(contactPhone !== undefined ? { contactPhone } : {}),
+                ...(profileName ? { contactName: profileName } : {}),
+                ...(contactPhone !== undefined ? { contactPhone: contactPhone || null } : {}),
               },
             }
           : undefined,
