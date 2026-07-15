@@ -18,17 +18,22 @@ export async function GET(request: NextRequest) {
   const isPartnerView = session.user.role === "PARTNER";
 
   if (canManageListings(session.user)) {
-    const rawParams = Object.fromEntries(searchParams);
-    const params = Object.fromEntries(
-      Object.entries(rawParams).filter(([, value]) => value !== "")
-    );
-    const parsed = inventoryFiltersSchema.safeParse(params);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
-    }
+    try {
+      const rawParams = Object.fromEntries(searchParams);
+      const params = Object.fromEntries(
+        Object.entries(rawParams).filter(([, value]) => value !== "")
+      );
+      const parsed = inventoryFiltersSchema.safeParse(params);
+      if (!parsed.success) {
+        return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
+      }
 
-    const result = await queryVehicleBrowse(parsed.data, {}, {});
-    return NextResponse.json(result);
+      const result = await queryVehicleBrowse(parsed.data, {}, {});
+      return NextResponse.json(result);
+    } catch (error) {
+      console.error("Vehicle browse failed:", error);
+      return NextResponse.json({ error: "Failed to load listings" }, { status: 500 });
+    }
   }
 
   const where: Prisma.VehicleWhereInput = isPartnerView

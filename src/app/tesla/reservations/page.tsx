@@ -49,10 +49,15 @@ export default function TeslaReservationsPage() {
   useEffect(() => {
     async function fetchVehicles() {
       setLoading(true);
-      const res = await fetch(`/api/tesla/reserved-vehicles?status=${statusFilter}`);
-      const data = await res.json();
-      setVehicles(Array.isArray(data) ? data : []);
-      setLoading(false);
+      try {
+        const res = await fetch(`/api/tesla/reserved-vehicles?status=${statusFilter}`);
+        const data = await res.json();
+        setVehicles(Array.isArray(data) ? data : []);
+      } catch {
+        setVehicles([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
     fetchVehicles();
@@ -60,10 +65,15 @@ export default function TeslaReservationsPage() {
 
   async function reload() {
     setLoading(true);
-    const res = await fetch(`/api/tesla/reserved-vehicles?status=${statusFilter}`);
-    const data = await res.json();
-    setVehicles(Array.isArray(data) ? data : []);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/tesla/reserved-vehicles?status=${statusFilter}`);
+      const data = await res.json();
+      setVehicles(Array.isArray(data) ? data : []);
+    } catch {
+      setVehicles([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleMarkSold(vehicleId: string) {

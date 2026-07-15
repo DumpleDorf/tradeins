@@ -66,7 +66,8 @@ export default function TeslaReportingPage() {
       .then((json) => {
         setData(json);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   return (

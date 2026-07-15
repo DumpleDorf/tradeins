@@ -34,7 +34,8 @@ export default function ReservationsPage() {
       .then((data) => {
         setReservations(Array.isArray(data) ? data : []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   return (

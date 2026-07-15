@@ -224,7 +224,7 @@ export function InventoryFiltersPanel({
                   onChange={(e) => onDraftChange({ ...draft, location: e.target.value })}
                 >
                   <option value="">All locations</option>
-                  {meta.locations.map((location) => (
+                  {(meta.locations ?? []).map((location) => (
                     <option key={location} value={location}>
                       {location}
                     </option>

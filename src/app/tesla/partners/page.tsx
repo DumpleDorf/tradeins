@@ -40,10 +40,15 @@ export default function TeslaPartnersPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/partners");
-    const data = await res.json();
-    setPartners(Array.isArray(data) ? data : []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/partners");
+      const data = await res.json();
+      setPartners(Array.isArray(data) ? data : []);
+    } catch {
+      setPartners([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {

@@ -92,51 +92,61 @@ export async function queryVehicleBrowse(
   const sort = filters.sort ?? "newest";
   const page = filters.page ?? 1;
 
-  const [vehicles, total, bounds, makes, modelOptions, serviceHistories, locations] =
-    await Promise.all([
-      prisma.vehicle.findMany({
-        where,
-        include: {
-          photos: { orderBy: { sortOrder: "asc" }, take: 1 },
-        },
-        orderBy: buildVehicleBrowseOrderBy(sort),
-        skip: (page - 1) * VEHICLE_BROWSE_PAGE_SIZE,
-        take: VEHICLE_BROWSE_PAGE_SIZE,
-      }),
-      prisma.vehicle.count({ where }),
-      prisma.vehicle.aggregate({
-        where: metaWhere,
-        _min: { year: true, odometer: true },
-        _max: { year: true, odometer: true },
-      }),
-      prisma.vehicle.findMany({
-        where: metaWhere,
-        select: { make: true },
-        distinct: ["make"],
-        orderBy: { make: "asc" },
-      }),
-      prisma.vehicle.findMany({
-        where: metaWhere,
-        select: { make: true, model: true },
-        distinct: ["make", "model"],
-        orderBy: [{ make: "asc" }, { model: "asc" }],
-      }),
-      prisma.vehicle.findMany({
-        where: metaWhere,
-        select: { serviceHistory: true },
-        distinct: ["serviceHistory"],
-        orderBy: { serviceHistory: "asc" },
-      }),
-      prisma.vehicle.findMany({
-        where: {
-          ...metaWhere,
-          location: { not: "" },
-        },
-        select: { location: true },
-        distinct: ["location"],
-        orderBy: { location: "asc" },
-      }),
-    ]);
+  // Keep this to 2 round-trips so serverless + Supabase pooler don't stall under
+  // many parallel Prisma connections.
+  const [vehicles, total, metaRows, bounds] = await Promise.all([
+    prisma.vehicle.findMany({
+      where,
+      include: {
+        photos: { orderBy: { sortOrder: "asc" }, take: 1 },
+      },
+      orderBy: buildVehicleBrowseOrderBy(sort),
+      skip: (page - 1) * VEHICLE_BROWSE_PAGE_SIZE,
+      take: VEHICLE_BROWSE_PAGE_SIZE,
+    }),
+    prisma.vehicle.count({ where }),
+    prisma.vehicle.findMany({
+      where: metaWhere,
+      select: {
+        make: true,
+        model: true,
+        serviceHistory: true,
+        location: true,
+      },
+    }),
+    prisma.vehicle.aggregate({
+      where: metaWhere,
+      _min: { year: true, odometer: true },
+      _max: { year: true, odometer: true },
+    }),
+  ]);
+
+  const makes = [...new Set(metaRows.map((row) => row.make))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+  const modelKey = new Set<string>();
+  const modelOptions: { make: string; model: string }[] = [];
+  for (const row of metaRows) {
+    const key = `${row.make}::${row.model}`;
+    if (modelKey.has(key)) continue;
+    modelKey.add(key);
+    modelOptions.push({ make: row.make, model: row.model });
+  }
+  modelOptions.sort(
+    (a, b) => a.make.localeCompare(b.make) || a.model.localeCompare(b.model)
+  );
+
+  const serviceHistories = [
+    ...new Set(metaRows.map((row) => row.serviceHistory)),
+  ].sort((a, b) => a.localeCompare(b));
+
+  const locations = [
+    ...new Set(
+      metaRows
+        .map((row) => row.location?.trim())
+        .filter((value): value is string => Boolean(value))
+    ),
+  ].sort((a, b) => a.localeCompare(b));
 
   const yearMin = bounds._min.year ?? new Date().getFullYear() - 10;
   const yearMax = bounds._max.year ?? new Date().getFullYear();
@@ -154,10 +164,10 @@ export async function queryVehicleBrowse(
       yearMax,
       odometerMin: bounds._min.odometer ?? 0,
       odometerMax: bounds._max.odometer ?? 200000,
-      makes: makes.map((row) => row.make),
-      modelOptions: modelOptions.map((row) => ({ make: row.make, model: row.model })),
-      serviceHistories: serviceHistories.map((row) => row.serviceHistory),
-      locations: locations.map((row) => row.location),
+      makes,
+      modelOptions,
+      serviceHistories,
+      locations,
     },
   };
 }

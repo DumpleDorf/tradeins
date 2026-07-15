@@ -63,11 +63,11 @@ export function VehicleBrowse({
   const [vehicles, setVehicles] = useState<BrowseVehicle[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [meta, setMeta] = useState<InventoryMeta>(DEFAULT_VEHICLE_BROWSE_META);
-  const [metaReady, setMetaReady] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -85,6 +85,7 @@ export function VehicleBrowse({
   const metaRef = useRef(meta);
   metaRef.current = meta;
   const hasLoadedRef = useRef(false);
+  const metaReadyRef = useRef(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
@@ -101,35 +102,65 @@ export function VehicleBrowse({
     } else {
       setRefreshing(true);
     }
+    setError("");
 
-    const params = vehicleBrowseFiltersToParams(
-      appliedFilters,
-      metaRef.current,
-      sort,
-      search,
-      page
-    );
+    try {
+      const params = vehicleBrowseFiltersToParams(
+        appliedFilters,
+        metaRef.current,
+        sort,
+        search,
+        page
+      );
 
-    const res = await fetch(`${apiEndpoint}?${params}`);
-    const data = await res.json();
-    setVehicles(data.vehicles ?? []);
-    setTotalPages(data.pagination?.totalPages ?? 1);
-    setTotal(data.pagination?.total ?? 0);
+      const res = await fetch(`${apiEndpoint}?${params}`);
+      const data = await res.json().catch(() => ({}));
 
-    if (data.meta) {
-      setMeta(data.meta);
-      if (!metaReady) {
-        const defaults = createDefaultFilters(data.meta);
-        setDraftFilters(defaults);
-        setAppliedFilters(defaults);
-        setMetaReady(true);
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "Failed to load vehicles"
+        );
       }
-    }
 
-    hasLoadedRef.current = true;
-    setInitialLoading(false);
-    setRefreshing(false);
-  }, [apiEndpoint, appliedFilters, sort, search, page, metaReady]);
+      setVehicles(data.vehicles ?? []);
+      setTotalPages(data.pagination?.totalPages ?? 1);
+      setTotal(data.pagination?.total ?? 0);
+
+      if (data.meta) {
+        setMeta(data.meta);
+        if (!metaReadyRef.current) {
+          metaReadyRef.current = true;
+          const defaults = createDefaultFilters(data.meta);
+          setDraftFilters(defaults);
+          // Avoid an extra dependency-driven refetch loop on first meta hydrate.
+          setAppliedFilters((current) => {
+            const same =
+              current.make === defaults.make &&
+              current.model === defaults.model &&
+              current.vehicleDamage === defaults.vehicleDamage &&
+              current.serviceHistory === defaults.serviceHistory &&
+              current.pricing === defaults.pricing &&
+              current.location === defaults.location &&
+              current.status === defaults.status &&
+              current.yearRange[0] === defaults.yearRange[0] &&
+              current.yearRange[1] === defaults.yearRange[1] &&
+              current.odometerRange[0] === defaults.odometerRange[0] &&
+              current.odometerRange[1] === defaults.odometerRange[1];
+            return same ? current : defaults;
+          });
+        }
+      }
+    } catch (err) {
+      setVehicles([]);
+      setTotal(0);
+      setTotalPages(1);
+      setError(err instanceof Error ? err.message : "Failed to load vehicles");
+    } finally {
+      hasLoadedRef.current = true;
+      setInitialLoading(false);
+      setRefreshing(false);
+    }
+  }, [apiEndpoint, appliedFilters, sort, search, page]);
 
   useEffect(() => {
     fetchVehicles();
@@ -290,7 +321,14 @@ export function VehicleBrowse({
       </div>
 
       <div className={cn("mt-8 transition-opacity duration-200", refreshing && "opacity-60")}>
-        {!initialLoading && !refreshing && vehicles.length === 0 ? (
+        {error ? (
+          <div className="rounded-sm border border-red-500/40 bg-red-500/10 p-10 text-center">
+            <p className="text-sm text-red-300">{error}</p>
+            <Button variant="outline" className="mt-4" onClick={() => fetchVehicles()}>
+              Try again
+            </Button>
+          </div>
+        ) : !initialLoading && !refreshing && vehicles.length === 0 ? (
           <div className="rounded-sm border border-border/80 bg-card/80 p-10 text-center backdrop-blur-sm">
             <p className="text-muted-foreground">{emptyMessage}</p>
             {(search || activeFilterCount > 0) && (

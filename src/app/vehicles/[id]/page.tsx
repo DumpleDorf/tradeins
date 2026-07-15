@@ -25,12 +25,21 @@ export default function VehicleDetailPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     fetch(`/api/vehicles/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setVehicle(data);
-        setLoading(false);
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+        if (!cancelled) {
+          setVehicle(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   async function handlePurchase() {

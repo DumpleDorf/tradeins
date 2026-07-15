@@ -24,7 +24,8 @@ export default function TeslaAuditPage() {
       .then((data) => {
         setLogs(Array.isArray(data) ? data : []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   return (

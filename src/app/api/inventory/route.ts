@@ -14,15 +14,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const rawParams = Object.fromEntries(new URL(request.url).searchParams);
-  const params = Object.fromEntries(
-    Object.entries(rawParams).filter(([, value]) => value !== "")
-  );
-  const parsed = inventoryFiltersSchema.safeParse(params);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
-  }
+  try {
+    const rawParams = Object.fromEntries(new URL(request.url).searchParams);
+    const params = Object.fromEntries(
+      Object.entries(rawParams).filter(([, value]) => value !== "")
+    );
+    const parsed = inventoryFiltersSchema.safeParse(params);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid filters" }, { status: 400 });
+    }
 
-  const result = await queryVehicleBrowse(parsed.data, availableWhere, availableWhere);
-  return NextResponse.json(result);
+    const result = await queryVehicleBrowse(parsed.data, availableWhere, availableWhere);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Inventory browse failed:", error);
+    return NextResponse.json({ error: "Failed to load inventory" }, { status: 500 });
+  }
 }

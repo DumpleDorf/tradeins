@@ -29,10 +29,15 @@ export default function AdminUsersPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/admin/users");
-    const data = await res.json();
-    setUsers(Array.isArray(data) ? data : []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {

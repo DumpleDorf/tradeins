@@ -31,7 +31,8 @@ export default function ReservationDetailPage() {
       .then((data) => {
         setReservation(data);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [id]);
 
   if (loading) {
