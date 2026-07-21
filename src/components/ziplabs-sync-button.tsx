@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { parseZiplabsWholesaleCsv, ZIPLABS_REPORT_URL, type ZiplabsCsvRow } from "@/lib/ziplabs";
+import type { ZiplabsInconsistency } from "@/lib/ziplabs-sync-plan";
 
 type ZiplabsSyncButtonProps = {
   className?: string;
@@ -10,7 +11,7 @@ type ZiplabsSyncButtonProps = {
 
 type RunLog = {
   rnNumber: string;
-  status: "ok" | "error" | "skipped";
+  status: "ok" | "error" | "skipped" | "deleted" | "inconsistent";
   detail: string;
 };
 
@@ -27,7 +28,16 @@ type JobPollResult = {
   };
 };
 
-const IMPORT_LIMIT = 3;
+type AnalyzeResponse = {
+  reportCount: number;
+  toCreate: string[];
+  toDelete: { id: string; make: string; model: string; year: number; status: string }[];
+  inconsistencies: ZiplabsInconsistency[];
+  error?: string;
+};
+
+/** AMP scrape is slow — create this many missing listings per CSV upload. Re-upload to continue. */
+const CREATE_BATCH_LIMIT = 3;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -66,28 +76,10 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [logs, setLogs] = useState<RunLog[]>([]);
-  const [parsedCount, setParsedCount] = useState<number | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
 
-  async function listingExists(rnNumber: string) {
-    const res = await fetch(`/api/vehicles/${encodeURIComponent(rnNumber)}`);
-    if (res.status === 404) return false;
-    if (!res.ok) {
-      throw new Error(`Failed to check existing listing (${res.status})`);
-    }
-    return true;
-  }
-
-  async function importOne(row: ZiplabsCsvRow, index: number, total: number) {
-    setProgress(`(${index + 1}/${total}) Checking if ${row.rnNumber} already exists…`);
-    if (await listingExists(row.rnNumber)) {
-      return {
-        rnNumber: row.rnNumber,
-        status: "skipped" as const,
-        detail: "Already exists — skipped AMP scrape",
-      };
-    }
-
-    setProgress(`(${index + 1}/${total}) Starting job for ${row.rnNumber}…`);
+  async function createOne(row: ZiplabsCsvRow, index: number, total: number) {
+    setProgress(`(${index + 1}/${total}) Starting AMP scrape for ${row.rnNumber}…`);
 
     const jobRes = await fetch("/api/ziplabs/jobs", {
       method: "POST",
@@ -104,7 +96,6 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
     }
 
     setProgress(`(${index + 1}/${total}) Opening AMP for ${row.rnNumber}…`);
-    // Unique window name per RN so previous debug tabs stay open.
     const popup = window.open(
       buildAmpJobUrl(row.ampUrl, job.id),
       `amp-scrape-${row.rnNumber}`
@@ -113,25 +104,14 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       throw new Error("Popup blocked. Allow popups for this site and try again.");
     }
 
-    setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber} on AMP (fields + images)…`);
+    setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber}…`);
     const scraped = await pollJob(job.id);
 
     if (scraped.status === "failed" || !scraped.fields) {
-      const debugHint = scraped.debug?.tileTitles?.length
-        ? ` Tiles seen: ${scraped.debug.tileTitles.join(", ")}`
-        : "";
-      throw new Error(`${scraped.error || "AMP scrape failed"}.${debugHint}`);
+      throw new Error(scraped.error || "AMP scrape failed");
     }
 
-    const photoCount = scraped.photoCount ?? 0;
-    const photoTitles = (scraped.photoTitles ?? scraped.debug?.photoTitles ?? []).join(", ");
-    setProgress(
-      `(${index + 1}/${total}) Creating listing ${row.rnNumber} with ${photoCount} photo(s)${
-        photoTitles ? ` [${photoTitles}]` : ""
-      }…`
-    );
-
-    // Import server-side from the job store — do not resend base64 photos (avoids 413).
+    setProgress(`(${index + 1}/${total}) Creating listing ${row.rnNumber}…`);
     const res = await fetch(`/api/ziplabs/jobs/${job.id}/import`, { method: "POST" });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -140,13 +120,10 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       );
     }
 
-    const titles = (data.photoTitles as string[] | undefined)?.join(", ") || photoTitles;
     return {
       rnNumber: row.rnNumber,
       status: "ok" as const,
-      detail: `Created listing with ${data.photoCount ?? 0} photo(s)${
-        titles ? ` — ${titles}` : ""
-      }`,
+      detail: `Created listing with ${data.photoCount ?? 0} photo(s)`,
     };
   }
 
@@ -155,35 +132,119 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
     setLoading(true);
     setError("");
     setLogs([]);
-    setParsedCount(null);
+    setSummary(null);
     setProgress("Reading CSV…");
 
     try {
       const text = await file.text();
       const rows = parseZiplabsWholesaleCsv(text);
-      setParsedCount(rows.length);
+      const byRn = new Map(rows.map((row) => [row.rnNumber.toUpperCase(), row]));
+      const rnNumbers = rows.map((row) => row.rnNumber);
 
-      const batch = rows.slice(0, IMPORT_LIMIT);
+      setProgress("Analyzing report vs website inventory…");
+      const analyzeRes = await fetch("/api/ziplabs/sync/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rnNumbers }),
+      });
+      const plan = (await analyzeRes.json()) as AnalyzeResponse;
+      if (!analyzeRes.ok) {
+        throw new Error(plan.error || "Failed to analyze ZipLabs sync");
+      }
+
       const nextLogs: RunLog[] = [];
 
-      // Sequential: open tab → scrape → import → leave tab open → open next.
+      for (const item of plan.inconsistencies) {
+        nextLogs.push({
+          rnNumber: item.rnNumber,
+          status: "inconsistent",
+          detail: item.reason,
+        });
+      }
+      setLogs([...nextLogs]);
+
+      setProgress(`Deleting ${plan.toDelete.length} AVAILABLE listing(s) not on report…`);
+      const deleteRes = await fetch("/api/ziplabs/sync/apply-deletes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rnNumbers: plan.toDelete.map((vehicle) => vehicle.id) }),
+      });
+      const deleteData = await deleteRes.json();
+      if (!deleteRes.ok) {
+        throw new Error(deleteData.error || "Failed to delete listings");
+      }
+
+      const deleted = (deleteData.deleted ?? []) as {
+        rnNumber: string;
+        make: string;
+        model: string;
+        year: number;
+      }[];
+      for (const vehicle of deleted) {
+        nextLogs.push({
+          rnNumber: vehicle.rnNumber,
+          status: "deleted",
+          detail: `Deleted AVAILABLE listing (${vehicle.year} ${vehicle.make} ${vehicle.model}) — not on ZipLabs report`,
+        });
+      }
+      setLogs([...nextLogs]);
+
+      const createQueue = plan.toCreate
+        .map((rn) => byRn.get(rn.toUpperCase()))
+        .filter((row): row is ZiplabsCsvRow => Boolean(row));
+      const batch = createQueue.slice(0, CREATE_BATCH_LIMIT);
+      const created: string[] = [];
+      const createErrors: { rnNumber: string; error: string }[] = [];
+
       for (let i = 0; i < batch.length; i += 1) {
         try {
-          nextLogs.push(await importOne(batch[i], i, batch.length));
+          const result = await createOne(batch[i], i, batch.length);
+          created.push(result.rnNumber);
+          nextLogs.push(result);
         } catch (err) {
+          const message = err instanceof Error ? err.message : "Failed";
+          createErrors.push({ rnNumber: batch[i].rnNumber, error: message });
           nextLogs.push({
             rnNumber: batch[i].rnNumber,
             status: "error",
-            detail: err instanceof Error ? err.message : "Failed",
+            detail: message,
           });
         }
         setLogs([...nextLogs]);
         await sleep(500);
       }
 
-      setProgress(
-        `Finished first ${batch.length} of ${rows.length} vehicles. AMP tabs left open for debugging.`
+      const remainingCreates = Math.max(0, createQueue.length - batch.length);
+      const resultPayload = {
+        ranAt: new Date().toISOString(),
+        fileName: file.name,
+        reportCount: plan.reportCount,
+        created,
+        deleted,
+        createErrors,
+        inconsistencies: plan.inconsistencies,
+      };
+
+      await fetch("/api/ziplabs/sync/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(resultPayload),
+      });
+
+      setSummary(
+        [
+          `Report rows: ${plan.reportCount}`,
+          `Inconsistencies: ${plan.inconsistencies.length}`,
+          `Deleted AVAILABLE not on report: ${deleted.length}`,
+          `Created: ${created.length}${
+            remainingCreates > 0 ? ` (${remainingCreates} still missing — re-upload CSV to continue)` : ""
+          }`,
+          createErrors.length ? `Create errors: ${createErrors.length}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
       );
+      setProgress("ZipLabs sync finished. See Reporting for the inconsistency list.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process ZipLabs CSV");
       setProgress("");
@@ -207,7 +268,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         disabled={loading}
         onClick={() => inputRef.current?.click()}
       >
-        {loading ? "Importing…" : "Upload ZipLabs CSV export"}
+        {loading ? "Syncing…" : "Upload ZipLabs CSV export"}
       </Button>
 
       <p className="mt-2 text-xs text-muted-foreground">
@@ -220,8 +281,9 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tesla Wholesale Website
         </a>{" "}
-        report as CSV, then upload it here. Processes the first {IMPORT_LIMIT} vehicles
-        one-by-one. AMP tabs stay open for debugging.
+        report as CSV, then upload it here. Sync will: create missing RNs (up to{" "}
+        {CREATE_BATCH_LIMIT} AMP scrapes per run), flag report/website conflicts, and delete
+        AVAILABLE listings not on the report.
       </p>
 
       <p className="mt-2 text-xs text-muted-foreground">
@@ -238,19 +300,15 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         <a href="/amp-scrape.user.js" className="underline underline-offset-2">
           AMP scrape helper (v1.5.1)
         </a>
-        . Stay logged into AMP and allow popups. Black debug box on AMP = scrape progress.
+        . Stay logged into AMP and allow popups.
       </p>
 
       {progress ? <p className="mt-3 text-sm text-muted-foreground">{progress}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+      {summary ? <p className="mt-3 text-sm font-medium">{summary}</p> : null}
 
-      {parsedCount !== null || logs.length > 0 ? (
-        <div className="mt-4 space-y-2 rounded-sm border border-border bg-card/80 p-4 text-sm">
-          {parsedCount !== null ? (
-            <p className="font-medium">
-              Parsed {parsedCount} vehicles — processing first {IMPORT_LIMIT} sequentially
-            </p>
-          ) : null}
+      {logs.length > 0 ? (
+        <div className="mt-4 max-h-80 space-y-1 overflow-y-auto rounded-sm border border-border bg-card/80 p-4 text-sm">
           <ul className="space-y-1 text-muted-foreground">
             {logs.map((log) => (
               <li key={`${log.rnNumber}-${log.detail}`}>
@@ -258,9 +316,11 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
                   className={
                     log.status === "error"
                       ? "text-red-600"
-                      : log.status === "skipped"
-                        ? "text-muted-foreground"
-                        : "text-foreground"
+                      : log.status === "inconsistent" || log.status === "skipped"
+                        ? "text-amber-700 dark:text-amber-500"
+                        : log.status === "deleted"
+                          ? "text-orange-700 dark:text-orange-400"
+                          : "text-foreground"
                   }
                 >
                   {log.rnNumber}: {log.detail}

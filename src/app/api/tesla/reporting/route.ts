@@ -3,6 +3,7 @@ import { ReservationStatus, VehicleStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { canManageListings } from "@/lib/rbac";
+import { getZiplabsLastSync } from "@/lib/ziplabs-sync-store";
 
 function mapVehicleWithPartner(
   vehicle: {
@@ -166,6 +167,8 @@ export async function GET() {
     statusCounts.map((row) => [row.status, row._count._all])
   ) as Record<string, number>;
 
+  const ziplabsLastSync = await getZiplabsLastSync();
+
   return NextResponse.json({
     stats: {
       totalListings,
@@ -184,5 +187,6 @@ export async function GET() {
     })),
     reservationsByWholesaler: reservationsByWholesalerMerged,
     reservedVehicles: reservedVehicles.map(mapVehicleWithPartner),
+    ziplabsLastSync,
   });
 }

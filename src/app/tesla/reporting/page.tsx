@@ -11,6 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { formatVehiclePrice } from "@/lib/vehicle";
 
+type ZiplabsInconsistency = {
+  rnNumber: string;
+  reason: string;
+  websiteStatus?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+};
+
 type ReportingData = {
   stats: {
     totalListings: number;
@@ -26,6 +35,15 @@ type ReportingData = {
   makeBreakdown: { make: string; count: number }[];
   reservationsByWholesaler: { companyName: string; count: number }[];
   reservedVehicles: ReportingVehicle[];
+  ziplabsLastSync: {
+    ranAt: string;
+    fileName?: string;
+    reportCount: number;
+    created: string[];
+    deleted: { rnNumber: string; make: string; model: string; year: number }[];
+    createErrors: { rnNumber: string; error: string }[];
+    inconsistencies: ZiplabsInconsistency[];
+  } | null;
 };
 
 type ReportingVehicle = {
@@ -255,6 +273,73 @@ export default function TeslaReportingPage() {
               </div>
             </section>
           )}
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold">Inconsistent vehicles (ZipLabs)</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              From the latest ZipLabs CSV sync: vehicles on the report that already exist on
+              the website as available, reserved, or sold (not re-imported).
+            </p>
+            {!data.ziplabsLastSync ? (
+              <p className="text-muted-foreground">
+                No ZipLabs sync has been run yet. Upload a ZipLabs CSV from the Tesla
+                dashboard.
+              </p>
+            ) : data.ziplabsLastSync.inconsistencies.length === 0 ? (
+              <p className="text-muted-foreground">
+                Last sync{" "}
+                {new Date(data.ziplabsLastSync.ranAt).toLocaleString("en-AU")} — no
+                inconsistencies recorded.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Last sync {new Date(data.ziplabsLastSync.ranAt).toLocaleString("en-AU")}
+                  {data.ziplabsLastSync.fileName
+                    ? ` · ${data.ziplabsLastSync.fileName}`
+                    : ""}{" "}
+                  · {data.ziplabsLastSync.inconsistencies.length} inconsistent
+                  {data.ziplabsLastSync.deleted.length
+                    ? ` · ${data.ziplabsLastSync.deleted.length} deleted`
+                    : ""}
+                  {data.ziplabsLastSync.created.length
+                    ? ` · ${data.ziplabsLastSync.created.length} created`
+                    : ""}
+                </p>
+                <div className="overflow-x-auto rounded-sm border border-border">
+                  <table className="w-full min-w-[640px] text-left text-sm">
+                    <thead className="border-b border-border bg-muted/40">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Vehicle RN</th>
+                        <th className="px-3 py-2 font-medium">Website status</th>
+                        <th className="px-3 py-2 font-medium">Vehicle</th>
+                        <th className="px-3 py-2 font-medium">Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.ziplabsLastSync.inconsistencies.map((row) => (
+                        <tr key={`${row.rnNumber}-${row.reason}`} className="border-b border-border/70">
+                          <td className="px-3 py-2 font-medium">
+                            <Link
+                              href={`/tesla/listings/${row.rnNumber}`}
+                              className="text-tesla-red hover:underline"
+                            >
+                              {row.rnNumber}
+                            </Link>
+                          </td>
+                          <td className="px-3 py-2">{row.websiteStatus ?? "—"}</td>
+                          <td className="px-3 py-2">
+                            {[row.year, row.make, row.model].filter(Boolean).join(" ") || "—"}
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground">{row.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
 
           <VehiclePartnerList
             title="Currently reserved vehicles"
