@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { parseZiplabsWholesaleCsv, ZIPLABS_REPORT_URL, type ZiplabsCsvRow } from "@/lib/ziplabs";
-import type { ZiplabsJobRecord } from "@/lib/ziplabs-jobs";
 
 type ZiplabsSyncButtonProps = {
   className?: string;
@@ -15,33 +14,30 @@ type RunLog = {
   detail: string;
 };
 
+type JobPollResult = {
+  status: "pending" | "scraped" | "failed";
+  error?: string;
+  fields?: unknown;
+  photoCount?: number;
+  photoTitles?: string[];
+  debug?: {
+    tileTitles?: string[];
+    photoTitles?: string[];
+    failures?: string[];
+  };
+};
+
 const IMPORT_LIMIT = 3;
-/** Single shared window name so only one AMP tab can exist at a time. */
-const AMP_WINDOW_NAME = "teslatradeins-amp-scrape";
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitUntilClosed(popup: Window | null, timeoutMs = 15_000) {
-  if (!popup) return;
-  try {
-    popup.close();
-  } catch {
-    // ignore
-  }
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    if (popup.closed) return;
-    await sleep(150);
-  }
-}
-
-async function pollJob(jobId: string, timeoutMs = 180_000): Promise<ZiplabsJobRecord> {
+async function pollJob(jobId: string, timeoutMs = 180_000): Promise<JobPollResult> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const res = await fetch(`/api/ziplabs/jobs/${jobId}`);
-    const job = (await res.json()) as ZiplabsJobRecord & { error?: string };
+    const job = (await res.json()) as JobPollResult & { error?: string };
     if (!res.ok) {
       throw new Error(typeof job.error === "string" ? job.error : "Failed to poll scrape job");
     }
@@ -66,7 +62,6 @@ function buildAmpJobUrl(ampUrl: string, jobId: string) {
 
 export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const activePopupRef = useRef<Window | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
@@ -74,13 +69,6 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const [parsedCount, setParsedCount] = useState<number | null>(null);
 
   async function importOne(row: ZiplabsCsvRow, index: number, total: number) {
-    // Never open a new AMP tab while a previous one is still open.
-    if (activePopupRef.current && !activePopupRef.current.closed) {
-      setProgress(`(${index + 1}/${total}) Closing previous AMP tab…`);
-      await waitUntilClosed(activePopupRef.current);
-      activePopupRef.current = null;
-    }
-
     setProgress(`(${index + 1}/${total}) Starting job for ${row.rnNumber}…`);
 
     const jobRes = await fetch("/api/ziplabs/jobs", {
@@ -98,66 +86,50 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
     }
 
     setProgress(`(${index + 1}/${total}) Opening AMP for ${row.rnNumber}…`);
-    const popup = window.open(buildAmpJobUrl(row.ampUrl, job.id), AMP_WINDOW_NAME);
+    // Unique window name per RN so previous debug tabs stay open.
+    const popup = window.open(
+      buildAmpJobUrl(row.ampUrl, job.id),
+      `amp-scrape-${row.rnNumber}`
+    );
     if (!popup) {
       throw new Error("Popup blocked. Allow popups for this site and try again.");
     }
-    activePopupRef.current = popup;
 
-    try {
-      setProgress(
-        `(${index + 1}/${total}) Scraping ${row.rnNumber} on AMP (fields + images)…`
-      );
-      const scraped = await pollJob(job.id);
+    setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber} on AMP (fields + images)…`);
+    const scraped = await pollJob(job.id);
 
-      if (scraped.status === "failed" || !scraped.fields) {
-        const debugHint = scraped.debug?.tileTitles?.length
-          ? ` Tiles seen: ${scraped.debug.tileTitles.join(", ")}`
-          : "";
-        throw new Error(`${scraped.error || "AMP scrape failed"}.${debugHint}`);
-      }
-
-      const photoCount = scraped.photos?.length ?? 0;
-      const photoTitles = scraped.debug?.photoTitles?.join(", ");
-      setProgress(
-        `(${index + 1}/${total}) Creating listing ${row.rnNumber} with ${photoCount} photo(s)${
-          photoTitles ? ` [${photoTitles}]` : ""
-        }…`
-      );
-      const res = await fetch("/api/vehicles/ziplabs-import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          rnNumber: row.rnNumber,
-          site: row.serviceCenter,
-          fields: scraped.fields,
-          photos: scraped.photos ?? [],
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : `Import failed (${res.status})`
-        );
-      }
-
-      const titles = scraped.debug?.photoTitles?.join(", ");
-      return {
-        rnNumber: row.rnNumber,
-        status: "ok" as const,
-        detail: `Created listing with ${data.photoCount ?? 0} photo(s)${
-          titles ? ` — ${titles}` : ""
-        }`,
-      };
-    } finally {
-      setProgress(`(${index + 1}/${total}) Closing AMP tab for ${row.rnNumber}…`);
-      await waitUntilClosed(popup);
-      if (activePopupRef.current === popup) {
-        activePopupRef.current = null;
-      }
-      // Brief pause so the browser fully releases the window before the next open.
-      await sleep(500);
+    if (scraped.status === "failed" || !scraped.fields) {
+      const debugHint = scraped.debug?.tileTitles?.length
+        ? ` Tiles seen: ${scraped.debug.tileTitles.join(", ")}`
+        : "";
+      throw new Error(`${scraped.error || "AMP scrape failed"}.${debugHint}`);
     }
+
+    const photoCount = scraped.photoCount ?? 0;
+    const photoTitles = (scraped.photoTitles ?? scraped.debug?.photoTitles ?? []).join(", ");
+    setProgress(
+      `(${index + 1}/${total}) Creating listing ${row.rnNumber} with ${photoCount} photo(s)${
+        photoTitles ? ` [${photoTitles}]` : ""
+      }…`
+    );
+
+    // Import server-side from the job store — do not resend base64 photos (avoids 413).
+    const res = await fetch(`/api/ziplabs/jobs/${job.id}/import`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(
+        typeof data.error === "string" ? data.error : `Import failed (${res.status})`
+      );
+    }
+
+    const titles = (data.photoTitles as string[] | undefined)?.join(", ") || photoTitles;
+    return {
+      rnNumber: row.rnNumber,
+      status: "ok" as const,
+      detail: `Created listing with ${data.photoCount ?? 0} photo(s)${
+        titles ? ` — ${titles}` : ""
+      }`,
+    };
   }
 
   async function handleFile(file: File | undefined) {
@@ -169,10 +141,6 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
     setProgress("Reading CSV…");
 
     try {
-      // Clear any leftover AMP tab from a prior run.
-      await waitUntilClosed(activePopupRef.current);
-      activePopupRef.current = null;
-
       const text = await file.text();
       const rows = parseZiplabsWholesaleCsv(text);
       setParsedCount(rows.length);
@@ -180,10 +148,9 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       const batch = rows.slice(0, IMPORT_LIMIT);
       const nextLogs: RunLog[] = [];
 
-      // Strictly sequential: open → scrape (incl. images) → create → close → next.
+      // Sequential: open tab → scrape → import → leave tab open → open next.
       for (let i = 0; i < batch.length; i += 1) {
         try {
-          // eslint-disable-next-line no-await-in-loop
           nextLogs.push(await importOne(batch[i], i, batch.length));
         } catch (err) {
           nextLogs.push({
@@ -191,21 +158,18 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
             status: "error",
             detail: err instanceof Error ? err.message : "Failed",
           });
-          // Ensure the failed vehicle's tab is closed before continuing.
-          await waitUntilClosed(activePopupRef.current);
-          activePopupRef.current = null;
-          await sleep(500);
         }
         setLogs([...nextLogs]);
+        await sleep(500);
       }
 
-      setProgress(`Finished first ${batch.length} of ${rows.length} vehicles.`);
+      setProgress(
+        `Finished first ${batch.length} of ${rows.length} vehicles. AMP tabs left open for debugging.`
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to process ZipLabs CSV");
       setProgress("");
     } finally {
-      await waitUntilClosed(activePopupRef.current);
-      activePopupRef.current = null;
       setLoading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -238,8 +202,8 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tesla Wholesale Website
         </a>{" "}
-        report as CSV, then upload it here. Vehicles are handled strictly one at a time:
-        open AMP → scrape fields + images → create listing → close tab → next.
+        report as CSV, then upload it here. Processes the first {IMPORT_LIMIT} vehicles
+        one-by-one. AMP tabs stay open for debugging.
       </p>
 
       <p className="mt-2 text-xs text-muted-foreground">
@@ -256,8 +220,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         <a href="/amp-scrape.user.js" className="underline underline-offset-2">
           AMP scrape helper (v1.2.0)
         </a>
-        . Stay logged into AMP and allow popups. While scraping, a black debug box appears
-        on the AMP page (bottom-right) showing tiles/photos found — no browser console needed.
+        . Stay logged into AMP and allow popups. Black debug box on AMP = scrape progress.
       </p>
 
       {progress ? <p className="mt-3 text-sm text-muted-foreground">{progress}</p> : null}

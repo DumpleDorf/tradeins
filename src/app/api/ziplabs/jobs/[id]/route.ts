@@ -17,5 +17,15 @@ export async function GET(_request: Request, context: Context) {
     return NextResponse.json({ error: "Job not found" }, { status: 404 });
   }
 
-  return NextResponse.json(job);
+  // Never send base64 photo payloads to the browser (causes huge responses / 413 on import).
+  const { photos, ...rest } = job;
+  return NextResponse.json({
+    ...rest,
+    photoCount: photos?.length ?? 0,
+    photoTitles: (photos ?? []).map((photo) => photo.title),
+    debug: {
+      ...job.debug,
+      photoTitles: job.debug?.photoTitles ?? (photos ?? []).map((photo) => photo.title),
+    },
+  });
 }
