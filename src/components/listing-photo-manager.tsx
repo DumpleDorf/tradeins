@@ -143,7 +143,23 @@ export function ListingPhotoUpload({
     const files = e.target.files;
     if (!files?.length) return;
 
-    const added = Array.from(files).map((file) => ({
+    const selected = Array.from(files);
+    const oversized = selected.filter((file) => file.size > MAX_VEHICLE_PHOTO_BYTES);
+    const valid = selected.filter((file) => file.size > 0 && file.size <= MAX_VEHICLE_PHOTO_BYTES);
+
+    if (oversized.length > 0) {
+      window.alert(
+        `${oversized.length} photo(s) exceed ${formatPhotoSize(MAX_VEHICLE_PHOTO_BYTES)} and were skipped:\n` +
+          oversized.map((file) => `• ${file.name} (${formatPhotoSize(file.size)})`).join("\n")
+      );
+    }
+
+    if (valid.length === 0) {
+      e.target.value = "";
+      return;
+    }
+
+    const added = valid.map((file) => ({
       id: crypto.randomUUID(),
       file,
       previewUrl: URL.createObjectURL(file),

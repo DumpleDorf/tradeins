@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
-import { ListingPhotoManager, type ManagedPhoto } from "@/components/listing-photo-manager";
+import {
+  ListingPhotoManager,
+  ListingPhotoUpload,
+  type ManagedPhoto,
+  type UploadPhoto,
+} from "@/components/listing-photo-manager";
 import { BackLink } from "@/components/back-link";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import {
@@ -87,6 +92,7 @@ export default function TeslaListingDetailPage() {
   const [photoWarning, setPhotoWarning] = useState("");
   const [photosToRemove, setPhotosToRemove] = useState<string[]>([]);
   const [orderedPhotos, setOrderedPhotos] = useState<ManagedPhoto[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<UploadPhoto[]>([]);
   const [statusBusy, setStatusBusy] = useState(false);
   const [nextStatus, setNextStatus] = useState<"AVAILABLE" | "RESERVED" | "SOLD">("AVAILABLE");
   const [partnerId, setPartnerId] = useState("");
@@ -159,6 +165,7 @@ export default function TeslaListingDetailPage() {
   function cancelEdit() {
     setEditing(false);
     setPhotosToRemove([]);
+    setPendingPhotos([]);
     setError("");
   }
 
@@ -166,6 +173,8 @@ export default function TeslaListingDetailPage() {
     if (!vehicle) return;
     setOrderedPhotos(vehicle.photos.map((photo) => ({ id: photo.id, url: photo.url })));
     setPhotosToRemove([]);
+    setPendingPhotos([]);
+    setPhotoWarning("");
     setEditing(true);
   }
 
@@ -178,12 +187,9 @@ export default function TeslaListingDetailPage() {
     e.preventDefault();
     setSaving(true);
     setError("");
+    setPhotoWarning("");
 
-    const formData = new FormData(e.currentTarget);
-    photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
-    orderedPhotos.forEach((photo) => formData.append("photoOrder", photo.id));
-
-    const photoFiles = (formData.getAll("photos") as File[]).filter((file) => file.size > 0);
+    const photoFiles = pendingPhotos.map((photo) => photo.file);
     if (orderedPhotos.length === 0 && photoFiles.length === 0) {
       setError("At least one photo is required.");
       setSaving(false);
@@ -197,26 +203,39 @@ export default function TeslaListingDetailPage() {
       return;
     }
 
-    const res = await fetch(`/api/vehicles/${id}`, {
-      method: "PATCH",
-      body: formData,
-    });
-    const data = await res.json();
+    const formData = new FormData(e.currentTarget);
+    // Drop the unused file input from VehicleFormFields if present; we append pending photos.
+    formData.delete("photos");
+    photosToRemove.forEach((photoId) => formData.append("removePhotoIds", photoId));
+    orderedPhotos.forEach((photo) => formData.append("photoOrder", photo.id));
+    photoFiles.forEach((file) => formData.append("photos", file));
 
-    if (!res.ok) {
-      setError(formatApiError(data, "Failed to update listing."));
+    try {
+      const res = await fetch(`/api/vehicles/${id}`, {
+        method: "PATCH",
+        body: formData,
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(formatApiError(data, "Failed to update listing."));
+        setSaving(false);
+        return;
+      }
+
+      setVehicle(data);
+      setEditing(false);
+      setPhotosToRemove([]);
+      setPendingPhotos([]);
       setSaving(false);
-      return;
-    }
+      await loadAudit();
 
-    setVehicle(data);
-    setEditing(false);
-    setPhotosToRemove([]);
-    setSaving(false);
-    await loadAudit();
-
-    if (data.photoWarnings?.length) {
-      setPhotoWarning(data.photoWarnings.join(" "));
+      if (data?.photoWarnings?.length) {
+        setPhotoWarning(data.photoWarnings.join(" "));
+      }
+    } catch {
+      setError("Failed to update listing. Check your connection and try again.");
+      setSaving(false);
     }
   }
 
@@ -298,7 +317,9 @@ export default function TeslaListingDetailPage() {
             ? "Removing listing..."
             : statusBusy
               ? "Updating status..."
-              : "Saving changes..."
+              : pendingPhotos.length > 0
+                ? `Saving listing and uploading ${pendingPhotos.length} photo${pendingPhotos.length === 1 ? "" : "s"}…`
+                : "Saving changes..."
         }
       />
 
@@ -324,13 +345,13 @@ export default function TeslaListingDetailPage() {
             <VehicleFormFields
               defaultValues={vehicle}
               idPrefix="edit-"
-              showPhotos
+              showPhotos={false}
               rnReadOnly
             />
 
             <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
               <h2 className="font-semibold">
-                Photos <RequiredAsterisk />
+                Current photos <RequiredAsterisk />
               </h2>
               <ListingPhotoManager
                 photos={orderedPhotos}
@@ -343,10 +364,15 @@ export default function TeslaListingDetailPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                At least one photo is required. Existing photos count toward this requirement;
-                use the file input above to add more.
+                At least one photo is required. Existing photos count toward this requirement.
               </p>
             </div>
+
+            <ListingPhotoUpload
+              photos={pendingPhotos}
+              onChange={setPendingPhotos}
+              label="Add photos"
+            />
 
             {error && (
               <p className="text-center text-sm text-red-400" role="alert">

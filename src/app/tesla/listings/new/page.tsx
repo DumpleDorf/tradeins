@@ -46,25 +46,37 @@ export default function NewListingPage() {
     const formData = new FormData(e.currentTarget);
     photoFiles.forEach((file) => formData.append("photos", file));
 
-    const res = await fetch("/api/vehicles", { method: "POST", body: formData });
-    const data = await res.json();
+    try {
+      const res = await fetch("/api/vehicles", { method: "POST", body: formData });
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      setError(formatApiError(data, "Failed to create listing. Check all fields."));
+      if (!res.ok) {
+        setError(formatApiError(data, "Failed to create listing. Check all fields."));
+        setLoading(false);
+        return;
+      }
+
+      if (data?.photoWarnings?.length) {
+        sessionStorage.setItem("listingPhotoWarning", data.photoWarnings.join(" "));
+      }
+
+      router.push(`/tesla/listings/${data.id}`);
+    } catch {
+      setError("Failed to create listing. Check your connection and try again.");
       setLoading(false);
-      return;
     }
-
-    if (data.photoWarnings?.length) {
-      sessionStorage.setItem("listingPhotoWarning", data.photoWarnings.join(" "));
-    }
-
-    router.push(`/tesla/listings/${data.id}`);
   }
 
   return (
     <PageShell>
-      <LoadingOverlay show={loading} label="Creating listing..." />
+      <LoadingOverlay
+        show={loading}
+        label={
+          photos.length > 0
+            ? `Creating listing and uploading ${photos.length} photo${photos.length === 1 ? "" : "s"}…`
+            : "Creating listing..."
+        }
+      />
       <div className="mx-auto max-w-2xl">
         <BackLink href="/tesla/listings" label="Back to listings" />
         <h1 className="mt-4 text-center text-3xl font-semibold">New Vehicle Listing</h1>

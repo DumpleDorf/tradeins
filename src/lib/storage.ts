@@ -10,6 +10,9 @@ const supabaseKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
 const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "vehicle-photos";
 
+/** Parallel Supabase uploads — high enough for speed, low enough to avoid throttling. */
+const PHOTO_UPLOAD_CONCURRENCY = 4;
+
 const BUCKET_MIME_TYPES = [
   "image/jpeg",
   "image/png",
@@ -18,6 +21,9 @@ const BUCKET_MIME_TYPES = [
   "image/heic",
   "image/heif",
 ];
+
+/** Cache bucket ensure so we don't GET+PUT settings on every photo. */
+let bucketReadyPromise: Promise<void> | null = null;
 
 function supabaseHeaders(contentType?: string): Record<string, string> {
   const headers: Record<string, string> = {
@@ -44,7 +50,7 @@ async function syncVehiclePhotoBucket(): Promise<void> {
   });
 }
 
-export async function ensureVehiclePhotoBucket(): Promise<void> {
+async function ensureVehiclePhotoBucketOnce(): Promise<void> {
   if (!supabaseUrl || !supabaseKey) {
     return;
   }
@@ -77,9 +83,25 @@ export async function ensureVehiclePhotoBucket(): Promise<void> {
   }
 }
 
+export async function ensureVehiclePhotoBucket(): Promise<void> {
+  if (!supabaseUrl || !supabaseKey) {
+    return;
+  }
+
+  if (!bucketReadyPromise) {
+    bucketReadyPromise = ensureVehiclePhotoBucketOnce().catch((error) => {
+      bucketReadyPromise = null;
+      throw error;
+    });
+  }
+
+  await bucketReadyPromise;
+}
+
 export async function uploadVehiclePhoto(
   file: File,
-  vehicleId: string
+  vehicleId: string,
+  options?: { skipBucketEnsure?: boolean }
 ): Promise<string> {
   const validationError = validateVehiclePhotoFile(file);
   if (validationError) {
@@ -92,7 +114,9 @@ export async function uploadVehiclePhoto(
     return `data:${file.type || "image/jpeg"};base64,${base64}`;
   }
 
-  await ensureVehiclePhotoBucket();
+  if (!options?.skipBucketEnsure) {
+    await ensureVehiclePhotoBucket();
+  }
 
   const ext =
     (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
@@ -125,6 +149,27 @@ export async function uploadVehiclePhoto(
   return `${supabaseUrl}/storage/v1/object/public/${bucket}/${path}`;
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function runWorker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }
+
+  const poolSize = Math.min(concurrency, Math.max(items.length, 1));
+  await Promise.all(Array.from({ length: poolSize }, () => runWorker()));
+  return results;
+}
+
 export async function uploadVehiclePhotos(
   files: File[],
   vehicleId: string,
@@ -132,23 +177,56 @@ export async function uploadVehiclePhotos(
   savePhoto: (url: string, sortOrder: number) => Promise<void>
 ): Promise<string[]> {
   const warnings: string[] = [];
-  let uploaded = 0;
 
   const ordered = sortByPhotoLabel(
     files.filter((file) => file && file.size > 0),
     (file) => file.name
   );
 
-  for (const file of ordered) {
+  if (ordered.length === 0) {
+    return warnings;
+  }
+
+  // One bucket ensure for the whole batch (was previously N× GET+PUT).
+  await ensureVehiclePhotoBucket();
+
+  type UploadOutcome =
+    | { ok: true; url: string; index: number }
+    | { ok: false; warning: string; index: number };
+
+  const outcomes = await mapWithConcurrency(
+    ordered,
+    PHOTO_UPLOAD_CONCURRENCY,
+    async (file, index): Promise<UploadOutcome> => {
+      try {
+        const url = await uploadVehiclePhoto(file, vehicleId, { skipBucketEnsure: true });
+        return { ok: true, url, index };
+      } catch (uploadError) {
+        const message =
+          uploadError instanceof Error ? uploadError.message : `${file.name}: upload failed`;
+        console.error("Photo upload failed:", uploadError);
+        return { ok: false, warning: message, index };
+      }
+    }
+  );
+
+  // Persist successes in ordered index order so sortOrder stays contiguous.
+  let uploaded = 0;
+  for (const outcome of outcomes) {
+    if (!outcome.ok) {
+      warnings.push(outcome.warning);
+      continue;
+    }
     try {
-      const url = await uploadVehiclePhoto(file, vehicleId);
-      await savePhoto(url, startSortOrder + uploaded);
+      await savePhoto(outcome.url, startSortOrder + uploaded);
       uploaded += 1;
-    } catch (uploadError) {
+    } catch (saveError) {
       const message =
-        uploadError instanceof Error ? uploadError.message : `${file.name}: upload failed`;
+        saveError instanceof Error
+          ? saveError.message
+          : `Failed to save photo ${outcome.index + 1}`;
       warnings.push(message);
-      console.error("Photo upload failed:", uploadError);
+      console.error("Photo save failed:", saveError);
     }
   }
 
