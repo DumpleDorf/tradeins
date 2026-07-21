@@ -3,16 +3,44 @@ export const ZIPLABS_REPORT_URL =
   "https://ziplabs.teslamotors.com/superset/dashboard/69331/";
 
 /**
- * First AMP acquisition from the report (RN126870852).
- * Used as a temporary probe while the full scrape flow is built out.
+ * Runtime helper that waits for the ZipLabs table, then opens the first AMPLink.
+ * Intended to run in the ZipLabs page context (bookmarklet / userscript) — not from
+ * teslatradeins.com.au (browsers block cross-origin DOM access).
  */
-export const ZIPLABS_FIRST_AMP_URL =
-  "https://amp.tesla.com/acquisition/08bb2bb2-2a44-4d70-a75b-6a72e8c0bbda";
+export const ZIPLABS_OPEN_FIRST_AMP_SOURCE = `
+(async function openFirstZiplabsAmpLink() {
+  function findFirstAmpLink() {
+    return (
+      document.querySelector(
+        'tr.tablev2-first-row a[href*="amp.tesla.com/acquisition/"]'
+      ) ||
+      document.querySelector('a[href*="amp.tesla.com/acquisition/"]')
+    );
+  }
 
-export const ZIPLABS_FIRST_RN = "RN126870852";
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const link = findFirstAmpLink();
+    const href = link && link.getAttribute("href");
+    if (href) {
+      const absolute = new URL(href, window.location.origin).href;
+      window.open(absolute, "_blank", "noopener,noreferrer");
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
 
-/** Open ZipLabs report + first AMP listing (step-1 probe for inventory sync). */
-export function openZiplabsInventorySyncProbe() {
+  alert(
+    "Could not find an AMPLink yet. Wait until the ZipLabs table finishes loading, then run the helper again."
+  );
+})();
+`.trim();
+
+/** Bookmarklet that runs the first-AMPLink opener on the current (ZipLabs) page. */
+export function getZiplabsOpenFirstAmpBookmarklet() {
+  return `javascript:${encodeURIComponent(ZIPLABS_OPEN_FIRST_AMP_SOURCE)}`;
+}
+
+/** Open only the ZipLabs report (AMPLink is discovered dynamically on that page). */
+export function openZiplabsReport() {
   window.open(ZIPLABS_REPORT_URL, "_blank", "noopener,noreferrer");
-  window.open(ZIPLABS_FIRST_AMP_URL, "_blank", "noopener,noreferrer");
 }
