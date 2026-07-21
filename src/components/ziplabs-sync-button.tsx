@@ -10,7 +10,7 @@ type ZiplabsSyncButtonProps = {
 
 type RunLog = {
   rnNumber: string;
-  status: "ok" | "error";
+  status: "ok" | "error" | "skipped";
   detail: string;
 };
 
@@ -68,7 +68,25 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const [logs, setLogs] = useState<RunLog[]>([]);
   const [parsedCount, setParsedCount] = useState<number | null>(null);
 
+  async function listingExists(rnNumber: string) {
+    const res = await fetch(`/api/vehicles/${encodeURIComponent(rnNumber)}`);
+    if (res.status === 404) return false;
+    if (!res.ok) {
+      throw new Error(`Failed to check existing listing (${res.status})`);
+    }
+    return true;
+  }
+
   async function importOne(row: ZiplabsCsvRow, index: number, total: number) {
+    setProgress(`(${index + 1}/${total}) Checking if ${row.rnNumber} already exists…`);
+    if (await listingExists(row.rnNumber)) {
+      return {
+        rnNumber: row.rnNumber,
+        status: "skipped" as const,
+        detail: "Already exists — skipped AMP scrape",
+      };
+    }
+
     setProgress(`(${index + 1}/${total}) Starting job for ${row.rnNumber}…`);
 
     const jobRes = await fetch("/api/ziplabs/jobs", {
@@ -236,7 +254,15 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
           <ul className="space-y-1 text-muted-foreground">
             {logs.map((log) => (
               <li key={`${log.rnNumber}-${log.detail}`}>
-                <span className={log.status === "ok" ? "text-foreground" : "text-red-600"}>
+                <span
+                  className={
+                    log.status === "error"
+                      ? "text-red-600"
+                      : log.status === "skipped"
+                        ? "text-muted-foreground"
+                        : "text-foreground"
+                  }
+                >
                   {log.rnNumber}: {log.detail}
                 </span>
               </li>
