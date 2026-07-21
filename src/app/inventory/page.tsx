@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { VehicleBrowse } from "@/components/inventory/vehicle-browse";
@@ -23,13 +24,15 @@ export default function InventoryPage() {
         </div>
 
         <div className="mt-8">
-          <VehicleBrowse
-            apiEndpoint="/api/inventory"
-            storageKey="inventory-view-mode-v2"
-            vehicleBasePath="/vehicles/"
-            loadingLabel="Loading inventory..."
-            sortSelectId="inventory-sort"
-          />
+          <Suspense fallback={null}>
+            <VehicleBrowse
+              apiEndpoint="/api/inventory"
+              storageKey="inventory-view-mode-v2"
+              vehicleBasePath="/vehicles/"
+              loadingLabel="Loading inventory..."
+              sortSelectId="inventory-sort"
+            />
+          </Suspense>
         </div>
       </main>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleCard } from "@/components/vehicle-card";
@@ -50,20 +51,10 @@ type VehicleBrowseProps = {
   showStatusFilter?: boolean;
 };
 
-function statusFromSearchParams(search: string): InventoryFilterValues["status"] {
-  const value = new URLSearchParams(search).get("status");
+function parseStatusParam(value: string | null): InventoryFilterValues["status"] {
   if (!value || value === "ALL") return "";
   if (value === "AVAILABLE" || value === "RESERVED" || value === "SOLD") return value;
   return "";
-}
-
-function createFiltersFromUrl(meta: InventoryMeta): InventoryFilterValues {
-  const defaults = createDefaultFilters(meta);
-  if (typeof window === "undefined") return defaults;
-  return {
-    ...defaults,
-    status: statusFromSearchParams(window.location.search),
-  };
 }
 
 export function VehicleBrowse({
@@ -77,6 +68,9 @@ export function VehicleBrowse({
   showStatus = false,
   showStatusFilter = false,
 }: VehicleBrowseProps) {
+  const searchParams = useSearchParams();
+  const urlStatus = parseStatusParam(searchParams.get("status"));
+
   const [vehicles, setVehicles] = useState<BrowseVehicle[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,12 +86,14 @@ export function VehicleBrowse({
   const [viewMode, setViewMode] = useState<VehicleBrowseViewMode>("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const [draftFilters, setDraftFilters] = useState<InventoryFilterValues>(() =>
-    createFiltersFromUrl(DEFAULT_VEHICLE_BROWSE_META)
-  );
-  const [appliedFilters, setAppliedFilters] = useState<InventoryFilterValues>(() =>
-    createFiltersFromUrl(DEFAULT_VEHICLE_BROWSE_META)
-  );
+  const [draftFilters, setDraftFilters] = useState<InventoryFilterValues>(() => ({
+    ...createDefaultFilters(DEFAULT_VEHICLE_BROWSE_META),
+    status: urlStatus,
+  }));
+  const [appliedFilters, setAppliedFilters] = useState<InventoryFilterValues>(() => ({
+    ...createDefaultFilters(DEFAULT_VEHICLE_BROWSE_META),
+    status: urlStatus,
+  }));
 
   const metaRef = useRef(meta);
   metaRef.current = meta;
@@ -112,6 +108,17 @@ export function VehicleBrowse({
   useEffect(() => {
     window.localStorage.setItem(storageKey, viewMode);
   }, [storageKey, viewMode]);
+
+  // Keep filters in sync when landing via reporting / dashboard status links.
+  useEffect(() => {
+    setPage(1);
+    setDraftFilters((current) =>
+      current.status === urlStatus ? current : { ...current, status: urlStatus }
+    );
+    setAppliedFilters((current) =>
+      current.status === urlStatus ? current : { ...current, status: urlStatus }
+    );
+  }, [urlStatus]);
 
   const fetchVehicles = useCallback(async () => {
     if (!hasLoadedRef.current) {

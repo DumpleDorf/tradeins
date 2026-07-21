@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
 import { getDashboardPath } from "@/lib/rbac";
 
 export function Header() {
   const { data: session } = useSession();
   const displayName = session?.user?.displayName ?? session?.user?.name;
-  const role = session?.user?.role;
-  const canSeeReservations = role === "TESLA_EMPLOYEE" || role === "SUPER_ADMIN";
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
@@ -29,15 +26,6 @@ export function Header() {
               >
                 Dashboard
               </Link>
-              {canSeeReservations && (
-                <Link
-                  href="/tesla/reservations"
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Reserved / Sold
-                  <ReservationRequestsBadge />
-                </Link>
-              )}
               <span className="hidden text-sm text-muted-foreground sm:inline">
                 Logged in as {displayName}
               </span>

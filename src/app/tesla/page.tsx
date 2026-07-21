@@ -104,12 +104,12 @@ export default function TeslaDashboardPage() {
             className="animate-stagger-in"
             style={{ animationDelay: `${index * 75}ms` }}
           >
-            <Card className="h-full border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-tesla-red/50 hover:shadow-lg hover:shadow-tesla-red/10">
+            <Card className="relative h-full overflow-visible border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-tesla-red/50 hover:shadow-lg hover:shadow-tesla-red/10">
+              {link.showReservationBadge ? (
+                <ReservationRequestsBadge className="absolute right-0 top-0 z-10 translate-x-1/2 -translate-y-1/2" />
+              ) : null}
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {link.title}
-                  {link.showReservationBadge ? <ReservationRequestsBadge /> : null}
-                </CardTitle>
+                <CardTitle>{link.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{link.desc}</p>
