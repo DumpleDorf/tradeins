@@ -1,46 +1,131 @@
-/** ZipLabs Superset dashboard — Tesla Wholesale Website report. */
+/** ZipLabs Superset dashboard — Tesla Wholesale Website report (for reference links). */
 export const ZIPLABS_REPORT_URL =
   "https://ziplabs.teslamotors.com/superset/dashboard/69331/";
 
-/**
- * Runtime helper that waits for the ZipLabs table, then opens the first AMPLink.
- * Intended to run in the ZipLabs page context (bookmarklet / userscript) — not from
- * teslatradeins.com.au (browsers block cross-origin DOM access).
- */
-export const ZIPLABS_OPEN_FIRST_AMP_SOURCE = `
-(async function openFirstZiplabsAmpLink() {
-  function findFirstAmpLink() {
-    return (
-      document.querySelector(
-        'tr.tablev2-first-row a[href*="amp.tesla.com/acquisition/"]'
-      ) ||
-      document.querySelector('a[href*="amp.tesla.com/acquisition/"]')
-    );
-  }
+export type ZiplabsCsvRow = {
+  rnNumber: string;
+  ampUrl: string;
+  acquisitionId: string;
+  make: string;
+  model: string;
+  serviceCenter: string;
+};
 
-  for (let attempt = 0; attempt < 120; attempt += 1) {
-    const link = findFirstAmpLink();
-    const href = link && link.getAttribute("href");
-    if (href) {
-      const absolute = new URL(href, window.location.origin).href;
-      window.open(absolute, "_blank", "noopener,noreferrer");
+/** Minimal CSV parser that supports quoted fields and "" escapes. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  const pushField = () => {
+    row.push(field);
+    field = "";
+  };
+  const pushRow = () => {
+    // Skip trailing empty line
+    if (row.length === 1 && row[0] === "" && rows.length > 0) {
+      row = [];
       return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    rows.push(row);
+    row = [];
+  };
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        field += '"';
+        i += 1;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      pushField();
+    } else if (char === "\n") {
+      pushField();
+      pushRow();
+    } else if (char === "\r") {
+      // ignore; handle \r\n via \n
+    } else {
+      field += char;
+    }
   }
 
-  alert(
-    "Could not find an AMPLink yet. Wait until the ZipLabs table finishes loading, then run the helper again."
-  );
-})();
-`.trim();
+  if (field.length > 0 || row.length > 0) {
+    pushField();
+    pushRow();
+  }
 
-/** Bookmarklet that runs the first-AMPLink opener on the current (ZipLabs) page. */
-export function getZiplabsOpenFirstAmpBookmarklet() {
-  return `javascript:${encodeURIComponent(ZIPLABS_OPEN_FIRST_AMP_SOURCE)}`;
+  return rows;
 }
 
-/** Open only the ZipLabs report (AMPLink is discovered dynamically on that page). */
-export function openZiplabsReport() {
-  window.open(ZIPLABS_REPORT_URL, "_blank", "noopener,noreferrer");
+function extractRnAndAmpUrl(ampLinkCell: string): { rnNumber: string; ampUrl: string } | null {
+  const hrefMatch = ampLinkCell.match(
+    /href\s*=\s*""?(https:\/\/amp\.tesla\.com\/acquisition\/[^"<>]+)""?/i
+  ) || ampLinkCell.match(/(https:\/\/amp\.tesla\.com\/acquisition\/[a-f0-9-]+)/i);
+
+  const rnMatch = ampLinkCell.match(/\b(RN\d+)\b/i);
+  const ampUrl = hrefMatch?.[1]?.replace(/""/g, '"').trim();
+  const rnNumber = rnMatch?.[1]?.toUpperCase();
+
+  if (!ampUrl || !rnNumber) return null;
+  return { rnNumber, ampUrl };
+}
+
+/**
+ * Parse a ZipLabs "Tesla Wholesale Website" CSV export into structured rows.
+ * Expected columns: AMPLink, acquisition_id, make, model, ServiceCenterforPickUp
+ */
+export function parseZiplabsWholesaleCsv(text: string): ZiplabsCsvRow[] {
+  const table = parseCsv(text.replace(/^\uFEFF/, ""));
+  if (table.length < 2) {
+    throw new Error("CSV appears empty. Export the ZipLabs Tesla Wholesale Website report and try again.");
+  }
+
+  const headers = table[0].map((h) => h.trim().toLowerCase());
+  const ampIdx = headers.findIndex((h) => h === "amplink" || h.includes("amplink"));
+  const acquisitionIdx = headers.findIndex((h) => h === "acquisition_id" || h.includes("acquisition"));
+  const makeIdx = headers.findIndex((h) => h === "make");
+  const modelIdx = headers.findIndex((h) => h === "model");
+  const centerIdx = headers.findIndex(
+    (h) => h === "servicecenterforpickup" || h.includes("servicecenter")
+  );
+
+  if (ampIdx < 0) {
+    throw new Error('CSV is missing an "AMPLink" column. Use the ZipLabs Tesla Wholesale Website export.');
+  }
+
+  const rows: ZiplabsCsvRow[] = [];
+
+  for (const cells of table.slice(1)) {
+    if (cells.every((cell) => !cell.trim())) continue;
+    const parsed = extractRnAndAmpUrl(cells[ampIdx] ?? "");
+    if (!parsed) continue;
+
+    rows.push({
+      rnNumber: parsed.rnNumber,
+      ampUrl: parsed.ampUrl,
+      acquisitionId: (cells[acquisitionIdx] ?? "").trim(),
+      make: (cells[makeIdx] ?? "").trim(),
+      model: (cells[modelIdx] ?? "").trim(),
+      serviceCenter: (cells[centerIdx] ?? "").trim(),
+    });
+  }
+
+  if (rows.length === 0) {
+    throw new Error("No vehicle rows with AMPLink / RN numbers were found in the CSV.");
+  }
+
+  return rows;
 }

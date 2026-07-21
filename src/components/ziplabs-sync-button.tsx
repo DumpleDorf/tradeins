@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  getZiplabsOpenFirstAmpBookmarklet,
-  openZiplabsReport,
+  parseZiplabsWholesaleCsv,
   ZIPLABS_REPORT_URL,
+  type ZiplabsCsvRow,
 } from "@/lib/ziplabs";
 
 type ZiplabsSyncButtonProps = {
@@ -13,95 +13,83 @@ type ZiplabsSyncButtonProps = {
 };
 
 export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
-  const [showHelper, setShowHelper] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const bookmarklet = useMemo(() => getZiplabsOpenFirstAmpBookmarklet(), []);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [summary, setSummary] = useState<{
+    fileName: string;
+    count: number;
+    first: ZiplabsCsvRow;
+  } | null>(null);
 
-  function handleRun() {
-    openZiplabsReport();
-    setShowHelper(true);
-    setCopied(false);
-  }
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setLoading(true);
+    setError("");
+    setSummary(null);
 
-  async function copyBookmarklet() {
     try {
-      await navigator.clipboard.writeText(bookmarklet);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-      window.prompt("Copy this bookmarklet, then run it on the ZipLabs tab:", bookmarklet);
+      const text = await file.text();
+      const rows = parseZiplabsWholesaleCsv(text);
+      const first = rows[0];
+
+      setSummary({
+        fileName: file.name,
+        count: rows.length,
+        first,
+      });
+
+      // Step 1 probe: open the first AMP listing from the export (not hardcoded).
+      window.open(first.ampUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to read ZipLabs CSV");
+    } finally {
+      setLoading(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
   return (
     <div className={className}>
-      <Button type="button" onClick={handleRun}>
-        Run ZipLabs report / Update available inventory
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={(event) => void handleFile(event.target.files?.[0])}
+      />
+      <Button
+        type="button"
+        disabled={loading}
+        onClick={() => inputRef.current?.click()}
+      >
+        {loading ? "Reading CSV…" : "Upload ZipLabs CSV export"}
       </Button>
       <p className="mt-2 text-xs text-muted-foreground">
-        Opens{" "}
+        Export the{" "}
         <a
           href={ZIPLABS_REPORT_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="underline underline-offset-2"
         >
-          the ZipLabs wholesale report
-        </a>
-        . The first AMPLink is read from the live table (not hardcoded).
+          Tesla Wholesale Website
+        </a>{" "}
+        report as CSV, then upload it here. Opens the first AMPLink from the file;
+        full inventory sync comes next.
       </p>
 
-      {showHelper ? (
-        <div className="mt-4 space-y-3 rounded-sm border border-border bg-card/80 p-4 text-sm">
-          <p className="font-medium">Open the first AMPLink from the report</p>
-          <p className="text-muted-foreground">
-            Browsers block this site from reading the ZipLabs tab, so the first AMPLink
-            must be opened from inside ZipLabs after the table loads.
+      {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+
+      {summary ? (
+        <div className="mt-4 rounded-sm border border-border bg-card/80 p-4 text-sm">
+          <p className="font-medium">
+            Parsed {summary.count} vehicles from {summary.fileName}
           </p>
-          <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
-            <li>
-              One-time (recommended): install{" "}
-              <a
-                href="https://www.tampermonkey.net/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
-                Tampermonkey
-              </a>
-              , then open{" "}
-              <a
-                href="/ziplabs-open-first-amp.user.js"
-                className="underline underline-offset-2"
-              >
-                this userscript
-              </a>
-              . After that, pressing the button above opens ZipLabs and the script waits
-              for the table, then opens whichever AMPLink is in the first row.
-            </li>
-            <li>
-              Or, on the ZipLabs tab after the table loads, run this bookmarklet (drag to
-              bookmarks bar, or copy and paste into the address bar):
-            </li>
-          </ol>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={bookmarklet}
-              className="inline-flex h-10 items-center rounded-sm border border-border bg-transparent px-4 text-sm font-medium hover:bg-muted"
-              onClick={(event) => {
-                // Prevent navigating away from the dashboard if clicked in-place.
-                event.preventDefault();
-                window.alert(
-                  "Drag this link to your bookmarks bar, then click it while the ZipLabs report tab is active."
-                );
-              }}
-            >
-              Open first AMPLink
-            </a>
-            <Button type="button" variant="outline" onClick={copyBookmarklet}>
-              {copied ? "Copied" : "Copy bookmarklet"}
-            </Button>
-          </div>
+          <p className="mt-1 text-muted-foreground">
+            Opened first AMPLink: {summary.first.rnNumber} ({summary.first.make}{" "}
+            {summary.first.model})
+          </p>
         </div>
       ) : null}
     </div>
