@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
 import { ZiplabsSyncButton } from "@/components/ziplabs-sync-button";
-import { ReorderPhotosButton } from "@/components/reorder-photos-button";
 
 const links: {
   href: string;
@@ -56,9 +55,6 @@ export default function TeslaDashboardPage() {
       />
 
       <ZiplabsSyncButton className="mt-6" />
-
-      {/* Temporary — remove after one-time photo reorder */}
-      <ReorderPhotosButton className="mt-4" />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Link
