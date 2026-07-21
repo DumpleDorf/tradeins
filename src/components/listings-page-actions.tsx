@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
@@ -48,17 +49,11 @@ export function ListingsPageActions() {
         </Button>
       ) : null}
 
-      <span className="inline-flex cursor-not-allowed" title="manual vehicle listing disabled">
-        <Button
-          type="button"
-          disabled
-          tabIndex={-1}
-          className="pointer-events-none shadow-md shadow-tesla-red/20 opacity-50"
-          aria-disabled="true"
-        >
+      <Link href="/tesla/listings/new">
+        <Button className="shadow-md shadow-tesla-red/20 transition-shadow hover:shadow-lg hover:shadow-tesla-red/30">
           New Listing
         </Button>
-      </span>
+      </Link>
     </div>
   );
 }

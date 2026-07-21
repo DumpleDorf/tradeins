@@ -19,7 +19,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const [summary, setSummary] = useState<{
     fileName: string;
     count: number;
-    first: ZiplabsCsvRow;
+    opened: ZiplabsCsvRow[];
   } | null>(null);
 
   async function handleFile(file: File | undefined) {
@@ -31,16 +31,18 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
     try {
       const text = await file.text();
       const rows = parseZiplabsWholesaleCsv(text);
-      const first = rows[0];
+      const opened = rows.slice(0, 3);
 
       setSummary({
         fileName: file.name,
         count: rows.length,
-        first,
+        opened,
       });
 
-      // Step 1 probe: open the first AMP listing from the export (not hardcoded).
-      window.open(first.ampUrl, "_blank", "noopener,noreferrer");
+      // Step 1 probe: open the first 3 AMP listings from the export.
+      for (const row of opened) {
+        window.open(row.ampUrl, "_blank", "noopener,noreferrer");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to read ZipLabs CSV");
     } finally {
@@ -75,7 +77,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tesla Wholesale Website
         </a>{" "}
-        report as CSV, then upload it here. Opens the first AMPLink from the file;
+        report as CSV, then upload it here. Opens the first 3 AMPLinks from the file;
         full inventory sync comes next.
       </p>
 
@@ -87,8 +89,11 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
             Parsed {summary.count} vehicles from {summary.fileName}
           </p>
           <p className="mt-1 text-muted-foreground">
-            Opened first AMPLink: {summary.first.rnNumber} ({summary.first.make}{" "}
-            {summary.first.model})
+            Opened first {summary.opened.length} AMPLink
+            {summary.opened.length === 1 ? "" : "s"}:{" "}
+            {summary.opened
+              .map((row) => `${row.rnNumber} (${row.make} ${row.model})`)
+              .join("; ")}
           </p>
         </div>
       ) : null}
