@@ -1,20 +1,24 @@
 // ==UserScript==
 // @name         Tesla Trade-Ins — AMP acquisition scrape
 // @namespace    https://www.teslatradeins.com.au
-// @version      1.5.2
-// @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs. Closes the AMP tab when the scrape finishes (success or failure).
+// @version      1.5.3
+// @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs. Only uploads allowlisted photo tiles (vehicle photos + Damage_*), excluding customer documents. Closes the AMP tab when the scrape finishes (success or failure).
 // @match        https://amp.tesla.com/acquisition/*
 // @grant        none
 // @run-at       document-idle
 // ==/UserScript==
 
 (function teslaTradeinsAmpScrape() {
-  const EXCLUDED = new Set([
-    "Ownership Transfer Document",
-    "Release of Liability",
-    "Registration",
-    "Registration Document",
-  ]);
+  /** Tile titles / labels we scrape. Everything else (customer docs) is skipped. */
+  const ALLOWED_TITLES = [
+    "Odometer",
+    "IntFrontSeats",
+    "ExtDriverSide",
+    "ExtPassengerSide",
+    "FrontAngle",
+    "ReverseAngle",
+  ];
+  const ALLOWED_TITLE_NORMALIZED = ALLOWED_TITLES.map((name) => name.toLowerCase());
 
   let activeJobId = null;
   let running = false;
@@ -143,8 +147,24 @@
     return { title, fileName, key: `${title}::${fileName}` };
   }
 
-  function isExcludedTitle(title) {
-    return !title || EXCLUDED.has(title);
+  function normalizeLabel(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  /** Allowlisted vehicle photos only — equals/contains known names, or Damage_* prefix. */
+  function isAllowedPhotoLabel(label) {
+    const normalized = normalizeLabel(label);
+    if (!normalized) return false;
+    if (normalized.startsWith("damage_")) return true;
+    return ALLOWED_TITLE_NORMALIZED.some(
+      (name) => normalized === name || normalized.includes(name)
+    );
+  }
+
+  function isAllowedTile(wrapper) {
+    const { title, fileName } = tileKey(wrapper);
+    const fileStem = fileName.replace(/\.[^.]+$/, "");
+    return isAllowedPhotoLabel(title) || isAllowedPhotoLabel(fileStem);
   }
 
   /**
@@ -236,7 +256,7 @@
   async function tryCaptureTile(wrapper, origin, jobId, capturedKeys, photos, failures) {
     const { title, fileName, key } = tileKey(wrapper);
     if (capturedKeys.has(key)) return false;
-    if (isExcludedTitle(title)) return false;
+    if (!isAllowedTile(wrapper)) return false;
 
     const img = wrapper.querySelector("img.tile-asset-img");
     if (!img?.src) return false;
@@ -330,8 +350,8 @@
 
       // Scroll to encourage remaining lazy thumbnails — no clicks.
       for (const wrapper of wrappers) {
-        const { title, key } = tileKey(wrapper);
-        if (isExcludedTitle(title) || capturedKeys.has(key)) continue;
+        const { key } = tileKey(wrapper);
+        if (!isAllowedTile(wrapper) || capturedKeys.has(key)) continue;
         await scrollTileIntoView(wrapper);
         await tryCaptureTile(wrapper, origin, jobId, capturedKeys, photos, failures);
       }
