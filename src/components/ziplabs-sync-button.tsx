@@ -2,49 +2,152 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  parseZiplabsWholesaleCsv,
-  ZIPLABS_REPORT_URL,
-  type ZiplabsCsvRow,
-} from "@/lib/ziplabs";
+import { parseZiplabsWholesaleCsv, ZIPLABS_REPORT_URL, type ZiplabsCsvRow } from "@/lib/ziplabs";
+import type { ZiplabsJobRecord } from "@/lib/ziplabs-jobs";
 
 type ZiplabsSyncButtonProps = {
   className?: string;
 };
 
+type RunLog = {
+  rnNumber: string;
+  status: "ok" | "error";
+  detail: string;
+};
+
+const IMPORT_LIMIT = 3;
+
+async function pollJob(jobId: string, timeoutMs = 120_000): Promise<ZiplabsJobRecord> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const res = await fetch(`/api/ziplabs/jobs/${jobId}`);
+    const job = (await res.json()) as ZiplabsJobRecord & { error?: string };
+    if (!res.ok) {
+      throw new Error(typeof job.error === "string" ? job.error : "Failed to poll scrape job");
+    }
+    if (job.status === "scraped" || job.status === "failed") {
+      return job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(
+    "Timed out waiting for AMP scrape. Install the AMP scrape userscript, stay logged into AMP, and allow popups."
+  );
+}
+
+function buildAmpJobUrl(ampUrl: string, jobId: string) {
+  const url = new URL(ampUrl);
+  url.hash = new URLSearchParams({
+    teslatradeinsJob: jobId,
+    teslatradeinsOrigin: window.location.origin,
+  }).toString();
+  return url.toString();
+}
+
 export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState<{
-    fileName: string;
-    count: number;
-    opened: ZiplabsCsvRow[];
-  } | null>(null);
+  const [logs, setLogs] = useState<RunLog[]>([]);
+  const [parsedCount, setParsedCount] = useState<number | null>(null);
+
+  async function importOne(row: ZiplabsCsvRow, index: number, total: number) {
+    setProgress(`(${index + 1}/${total}) Starting job for ${row.rnNumber}…`);
+
+    const jobRes = await fetch("/api/ziplabs/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rnNumber: row.rnNumber,
+        site: row.serviceCenter,
+        ampUrl: row.ampUrl,
+      }),
+    });
+    const job = await jobRes.json();
+    if (!jobRes.ok) {
+      throw new Error(typeof job.error === "string" ? job.error : "Failed to create scrape job");
+    }
+
+    setProgress(`(${index + 1}/${total}) Opening AMP for ${row.rnNumber}…`);
+    const popup = window.open(buildAmpJobUrl(row.ampUrl, job.id), `amp-scrape-${row.rnNumber}`);
+    if (!popup) {
+      throw new Error("Popup blocked. Allow popups for this site and try again.");
+    }
+
+    try {
+      setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber} on AMP…`);
+      const scraped = await pollJob(job.id);
+
+      if (scraped.status === "failed" || !scraped.fields) {
+        throw new Error(scraped.error || "AMP scrape failed");
+      }
+
+      setProgress(`(${index + 1}/${total}) Creating listing ${row.rnNumber}…`);
+      const res = await fetch("/api/vehicles/ziplabs-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rnNumber: row.rnNumber,
+          site: row.serviceCenter,
+          fields: scraped.fields,
+          photos: scraped.photos ?? [],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : `Import failed (${res.status})`
+        );
+      }
+
+      return {
+        rnNumber: row.rnNumber,
+        status: "ok" as const,
+        detail: `Created listing with ${data.photoCount ?? 0} photo(s)`,
+      };
+    } finally {
+      try {
+        popup.close();
+      } catch {
+        // ignore
+      }
+    }
+  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
     setLoading(true);
     setError("");
-    setSummary(null);
+    setLogs([]);
+    setParsedCount(null);
+    setProgress("Reading CSV…");
 
     try {
       const text = await file.text();
       const rows = parseZiplabsWholesaleCsv(text);
-      const opened = rows.slice(0, 3);
+      setParsedCount(rows.length);
 
-      setSummary({
-        fileName: file.name,
-        count: rows.length,
-        opened,
-      });
+      const batch = rows.slice(0, IMPORT_LIMIT);
+      const nextLogs: RunLog[] = [];
 
-      // Step 1 probe: open the first 3 AMP listings from the export.
-      for (const row of opened) {
-        window.open(row.ampUrl, "_blank", "noopener,noreferrer");
+      for (let i = 0; i < batch.length; i += 1) {
+        try {
+          nextLogs.push(await importOne(batch[i], i, batch.length));
+        } catch (err) {
+          nextLogs.push({
+            rnNumber: batch[i].rnNumber,
+            status: "error",
+            detail: err instanceof Error ? err.message : "Failed",
+          });
+        }
+        setLogs([...nextLogs]);
       }
+
+      setProgress(`Finished first ${batch.length} of ${rows.length} vehicles.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to read ZipLabs CSV");
+      setError(err instanceof Error ? err.message : "Failed to process ZipLabs CSV");
+      setProgress("");
     } finally {
       setLoading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -65,8 +168,9 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         disabled={loading}
         onClick={() => inputRef.current?.click()}
       >
-        {loading ? "Reading CSV…" : "Upload ZipLabs CSV export"}
+        {loading ? "Importing…" : "Upload ZipLabs CSV export"}
       </Button>
+
       <p className="mt-2 text-xs text-muted-foreground">
         Export the{" "}
         <a
@@ -77,24 +181,47 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tesla Wholesale Website
         </a>{" "}
-        report as CSV, then upload it here. Opens the first 3 AMPLinks from the file;
-        full inventory sync comes next.
+        report as CSV, then upload it here. Processes the first {IMPORT_LIMIT} vehicles
+        one-by-one: opens AMP, scrapes fields + Customer Documents images, creates the
+        listing, then closes the tab.
       </p>
 
+      <p className="mt-2 text-xs text-muted-foreground">
+        One-time setup: install{" "}
+        <a
+          href="https://www.tampermonkey.net/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Tampermonkey
+        </a>
+        , then install the{" "}
+        <a href="/amp-scrape.user.js" className="underline underline-offset-2">
+          AMP scrape helper
+        </a>
+        . Stay logged into AMP and allow popups for this site.
+      </p>
+
+      {progress ? <p className="mt-3 text-sm text-muted-foreground">{progress}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
-      {summary ? (
-        <div className="mt-4 rounded-sm border border-border bg-card/80 p-4 text-sm">
-          <p className="font-medium">
-            Parsed {summary.count} vehicles from {summary.fileName}
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            Opened first {summary.opened.length} AMPLink
-            {summary.opened.length === 1 ? "" : "s"}:{" "}
-            {summary.opened
-              .map((row) => `${row.rnNumber} (${row.make} ${row.model})`)
-              .join("; ")}
-          </p>
+      {parsedCount !== null || logs.length > 0 ? (
+        <div className="mt-4 space-y-2 rounded-sm border border-border bg-card/80 p-4 text-sm">
+          {parsedCount !== null ? (
+            <p className="font-medium">
+              Parsed {parsedCount} vehicles — processing first {IMPORT_LIMIT}
+            </p>
+          ) : null}
+          <ul className="space-y-1 text-muted-foreground">
+            {logs.map((log) => (
+              <li key={`${log.rnNumber}-${log.detail}`}>
+                <span className={log.status === "ok" ? "text-foreground" : "text-red-600"}>
+                  {log.rnNumber}: {log.detail}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>
