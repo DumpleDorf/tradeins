@@ -6,6 +6,7 @@ import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
+import { ZiplabsSyncButton } from "@/components/ziplabs-sync-button";
 
 const links: {
   href: string;
@@ -52,6 +53,8 @@ export default function TeslaDashboardPage() {
         description="Manage trade-in wholesale inventory"
         showBack={false}
       />
+
+      <ZiplabsSyncButton className="mt-6" />
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Link

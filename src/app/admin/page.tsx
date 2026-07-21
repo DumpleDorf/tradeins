@@ -5,6 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
+import { ZiplabsSyncButton } from "@/components/ziplabs-sync-button";
 
 const teslaLinks: {
   href: string;
@@ -40,6 +41,8 @@ export default function AdminDashboardPage() {
         description="Platform administration and trade-in management"
         showBack={false}
       />
+
+      <ZiplabsSyncButton className="mt-6" />
 
       <section className="mt-8">
         <h2 className="text-lg font-medium">Trade-In Management</h2>
