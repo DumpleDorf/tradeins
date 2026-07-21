@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tesla Trade-Ins — AMP acquisition scrape
 // @namespace    https://www.teslatradeins.com.au
-// @version      1.3.0
+// @version      1.4.0
 // @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs.
 // @match        https://amp.tesla.com/acquisition/*
 // @grant        none
@@ -83,39 +83,57 @@
     return null;
   }
 
-  async function blobToBase64(blob) {
-    const buffer = await blob.arrayBuffer();
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.length; i += 1) {
-      binary += String.fromCharCode(bytes[i]);
+  function waitForImgLoad(img, timeoutMs = 10000) {
+    if (img.complete && img.naturalWidth > 0) {
+      return Promise.resolve(true);
     }
-    return btoa(binary);
-  }
-
-  async function waitForImageReady(img, timeoutMs = 8000) {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      if (img.src && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
-        return true;
-      }
-      try {
-        if (typeof img.decode === "function") {
-          await img.decode();
-          if (img.naturalWidth > 0) return true;
-        }
-      } catch {
-        // keep waiting
-      }
-      await sleep(200);
-    }
-    return img.complete && img.naturalWidth > 0;
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+        resolve(ok);
+      };
+      const onLoad = () => finish(img.naturalWidth > 0);
+      const onError = () => finish(false);
+      img.addEventListener("load", onLoad);
+      img.addEventListener("error", onError);
+      window.setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeoutMs);
+    });
   }
 
   async function captureViaCanvas(img) {
-    const ready = await waitForImageReady(img);
-    if (!ready) {
-      throw new Error("Image never finished loading in DOM");
+    const ok = await waitForImgLoad(img, 12000);
+    if (!ok || !img.naturalWidth || !img.naturalHeight) {
+      throw new Error(`Image not ready (${img.naturalWidth}x${img.naturalHeight})`);
+    }
+
+    // Draw a fresh Image from the same src while the blob is still valid.
+    const clone = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Clone image failed to load"));
+      image.src = img.currentSrc || img.src;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = clone.naturalWidth || img.naturalWidth;
+    canvas.height = clone.naturalHeight || img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unsupported");
+    ctx.drawImage(clone, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    const contentBase64 = dataUrl.split(",")[1];
+    if (!contentBase64) throw new Error("Canvas capture empty");
+    return { contentBase64, mimeType: "image/jpeg" };
+  }
+
+  async function captureViaDrawImage(img) {
+    const ok = await waitForImgLoad(img, 12000);
+    if (!ok || !img.naturalWidth) {
+      throw new Error(`DOM image not ready (${img.naturalWidth}x${img.naturalHeight})`);
     }
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
@@ -124,82 +142,20 @@
     if (!ctx) throw new Error("Canvas unsupported");
     ctx.drawImage(img, 0, 0);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
-    const base64 = dataUrl.split(",")[1];
-    if (!base64) throw new Error("Canvas capture empty");
-    return { contentBase64: base64, mimeType: "image/jpeg" };
-  }
-
-  async function captureViaFetch(img) {
-    const res = await fetch(img.src);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    if (!blob.type.startsWith("image/") && blob.size === 0) {
-      throw new Error(`Not an image (${blob.type || "unknown"})`);
-    }
-    // Some blob responses have empty type but are still images.
-    const mimeType = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
-    return { contentBase64: await blobToBase64(blob), mimeType };
+    const contentBase64 = dataUrl.split(",")[1];
+    if (!contentBase64) throw new Error("Canvas capture empty");
+    return { contentBase64, mimeType: "image/jpeg" };
   }
 
   async function captureImage(img) {
-    // Prefer canvas first — blob: URLs often revoke / fail to re-fetch on later AMP pages.
     try {
-      return await captureViaCanvas(img);
-    } catch (canvasError) {
+      return await captureViaDrawImage(img);
+    } catch (firstError) {
       debug(
-        `Canvas capture failed (${canvasError instanceof Error ? canvasError.message : "error"}), trying fetch…`
+        `Direct canvas failed (${firstError instanceof Error ? firstError.message : "error"}), trying clone…`
       );
-      return await captureViaFetch(img);
+      return await captureViaCanvas(img);
     }
-  }
-
-  async function ensureTileImage(wrapper, title) {
-    const findImg = () => wrapper.querySelector("img.tile-asset-img");
-
-    let img = findImg();
-    if (img?.src) {
-      await waitForImageReady(img, 5000);
-      if (img.naturalWidth > 0) return img;
-    }
-
-    // Click the asset/card to force AMP to hydrate the thumbnail.
-    const clickTargets = [
-      wrapper.querySelector(".tds-card-asset"),
-      wrapper.querySelector(".tds-card"),
-      wrapper.querySelector(".pdf-click-catcher"),
-      wrapper,
-    ].filter(Boolean);
-
-    for (const target of clickTargets) {
-      try {
-        target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-      } catch {
-        try {
-          target.click();
-        } catch {
-          // ignore
-        }
-      }
-      await sleep(600);
-      img = findImg();
-      if (img?.src) {
-        const ready = await waitForImageReady(img, 6000);
-        if (ready) return img;
-      }
-    }
-
-    // Final wait loop — lazy images sometimes appear after neighboring tiles load.
-    for (let i = 0; i < 20; i += 1) {
-      img = findImg();
-      if (img?.src) {
-        const ready = await waitForImageReady(img, 2000);
-        if (ready) return img;
-      }
-      await sleep(300);
-    }
-
-    debug(`No image element after retries: ${title}`);
-    return null;
   }
 
   async function uploadPhoto(origin, jobId, photo) {
@@ -214,66 +170,156 @@
     }
   }
 
+  function listTiles() {
+    return [...document.querySelectorAll("#current-files-tab .tile-wrapper, .tile-wrapper")];
+  }
+
+  function isExcludedTitle(title) {
+    return !title || EXCLUDED.has(title);
+  }
+
+  function isPdfOnlyTile(wrapper) {
+    const hasPdf = Boolean(wrapper.querySelector("iframe.pdf-preview, .pdf-container"));
+    const hasImg = Boolean(wrapper.querySelector("img.tile-asset-img"));
+    return hasPdf && !hasImg;
+  }
+
+  async function scrollTileIntoView(wrapper) {
+    try {
+      wrapper.scrollIntoView({ block: "center", inline: "nearest" });
+    } catch {
+      // ignore
+    }
+    const root =
+      document.querySelector("#current-files-tab") ||
+      document.querySelector(".tile-container") ||
+      document.scrollingElement;
+    // Gentle scroll nudge only — never click tiles.
+    if (root) {
+      root.scrollTop += 1;
+      root.scrollTop -= 1;
+    }
+    await sleep(350);
+  }
+
+  async function waitForTileImage(wrapper, title, timeoutMs = 15000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const img = wrapper.querySelector("img.tile-asset-img");
+      if (img?.src) {
+        const ready = await waitForImgLoad(img, 4000);
+        if (ready && img.naturalWidth > 0) return img;
+      }
+      await scrollTileIntoView(wrapper);
+      await sleep(400);
+    }
+    return null;
+  }
+
   async function collectPhotos(origin, jobId) {
     const photos = [];
     const failures = [];
     const seenTitles = [];
+    const capturedKeys = new Set();
 
-    // Wait until tiles exist.
     await waitFor("#current-files-tab .tile-wrapper, .tile-wrapper", 60000);
-    await sleep(1000);
+    await sleep(1200);
 
-    // Process tiles one-by-one: scroll into view → force image → capture immediately.
-    // Re-query each loop because AMP may virtualize/replace nodes.
-    const processed = new Set();
-    let idleRounds = 0;
+    // Pass 1: scroll through the list a few times so lazy thumbnails hydrate (no clicks).
+    for (let pass = 0; pass < 8; pass += 1) {
+      const wrappers = listTiles();
+      const imageCount = document.querySelectorAll(
+        "#current-files-tab img.tile-asset-img, .tile-wrapper img.tile-asset-img"
+      ).length;
+      debug(`Hydrate pass ${pass + 1}: tiles=${wrappers.length}, images=${imageCount}`);
 
-    while (idleRounds < 3) {
-      const wrappers = [
-        ...document.querySelectorAll("#current-files-tab .tile-wrapper, .tile-wrapper"),
-      ];
-      let madeProgress = false;
+      for (const wrapper of wrappers) {
+        await scrollTileIntoView(wrapper);
+      }
 
-      debug(`Tile pass: ${wrappers.length} tiles, ${processed.size} processed, ${photos.length} photos`);
+      const root =
+        document.querySelector("#current-files-tab") ||
+        document.querySelector(".tile-container");
+      if (root) {
+        root.scrollTop = 0;
+        await sleep(300);
+        root.scrollTop = root.scrollHeight;
+      }
+      await sleep(700);
+    }
 
-      for (let index = 0; index < wrappers.length; index += 1) {
-        const wrapper = wrappers[index];
+    // Pass 2: capture each eligible tile that has a loaded image.
+    const wrappers = listTiles();
+    debug(`Collecting from ${wrappers.length} document tiles…`);
+
+    for (const wrapper of wrappers) {
+      const title = (wrapper.querySelector(".title-header")?.textContent || "").trim();
+      const fileName = (
+        wrapper.querySelector(".tile-name")?.textContent || `${title || "document"}.jpg`
+      ).trim();
+      const key = `${title}::${fileName}`;
+
+      if (!seenTitles.includes(title || "(untitled)")) {
+        seenTitles.push(title || "(untitled)");
+      }
+
+      if (isExcludedTitle(title)) {
+        debug(`Skip excluded/empty: ${title || "(untitled)"}`);
+        continue;
+      }
+
+      if (isPdfOnlyTile(wrapper)) {
+        debug(`Skip PDF-only tile: ${title}`);
+        continue;
+      }
+
+      if (capturedKeys.has(key)) continue;
+
+      await scrollTileIntoView(wrapper);
+      const img = await waitForTileImage(wrapper, title, 18000);
+      if (!img) {
+        failures.push(`${title}: no loaded image element`);
+        debug(`Skip (no loaded image): ${title}`);
+        continue;
+      }
+
+      try {
+        const captured = await captureImage(img);
+        const photo = {
+          title,
+          fileName,
+          mimeType: captured.mimeType,
+          contentBase64: captured.contentBase64,
+        };
+        await uploadPhoto(origin, jobId, photo);
+        photos.push(photo);
+        capturedKeys.add(key);
+        debug(`Uploaded photo ${photos.length}: ${title}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "photo failed";
+        failures.push(`${title}: ${message}`);
+        debug(`Photo failed: ${title} — ${message}`);
+      }
+    }
+
+    // Pass 3: one more retry only for failed non-excluded image titles.
+    if (failures.length > 0) {
+      debug(`Retrying ${failures.length} failed photo(s)…`);
+      for (const wrapper of listTiles()) {
         const title = (wrapper.querySelector(".title-header")?.textContent || "").trim();
         const fileName = (
           wrapper.querySelector(".tile-name")?.textContent || `${title || "document"}.jpg`
         ).trim();
         const key = `${title}::${fileName}`;
-
-        if (!seenTitles.includes(title || "(untitled)")) {
-          seenTitles.push(title || "(untitled)");
-        }
-        if (processed.has(key)) continue;
-        processed.add(key);
-        madeProgress = true;
-
-        if (!title || EXCLUDED.has(title)) {
-          debug(`Skip excluded/empty: ${title || "(untitled)"}`);
+        if (isExcludedTitle(title) || capturedKeys.has(key) || isPdfOnlyTile(wrapper)) {
           continue;
         }
 
-        // Skip obvious PDFs with no image opportunity later if still no img.
-        const hasPdf = Boolean(wrapper.querySelector("iframe.pdf-preview, .pdf-container"));
+        await scrollTileIntoView(wrapper);
+        const img = await waitForTileImage(wrapper, title, 12000);
+        if (!img) continue;
 
         try {
-          wrapper.scrollIntoView({ block: "center", inline: "nearest" });
-          await sleep(250);
-
-          const img = await ensureTileImage(wrapper, title);
-          if (!img) {
-            if (hasPdf) {
-              debug(`Skip PDF-only tile: ${title}`);
-            } else {
-              failures.push(`${title}: no image element`);
-              debug(`Skip (no image element): ${title}`);
-            }
-            continue;
-          }
-
           const captured = await captureImage(img);
           const photo = {
             title,
@@ -281,30 +327,16 @@
             mimeType: captured.mimeType,
             contentBase64: captured.contentBase64,
           };
-
           await uploadPhoto(origin, jobId, photo);
           photos.push(photo);
-          debug(`Uploaded photo ${photos.length}: ${title}`);
+          capturedKeys.add(key);
+          debug(`Uploaded photo ${photos.length} (retry): ${title}`);
         } catch (error) {
-          const message = error instanceof Error ? error.message : "photo failed";
-          failures.push(`${title}: ${message}`);
-          debug(`Photo failed: ${title} — ${message}`);
+          debug(
+            `Retry failed: ${title} — ${error instanceof Error ? error.message : "error"}`
+          );
         }
       }
-
-      if (!madeProgress) {
-        idleRounds += 1;
-      } else {
-        idleRounds = 0;
-      }
-
-      // Scroll container to encourage more lazy tiles, then re-scan once more.
-      const root =
-        document.querySelector("#current-files-tab") ||
-        document.querySelector(".tile-container");
-      if (root) root.scrollTop = root.scrollHeight;
-      window.scrollTo(0, document.body.scrollHeight);
-      await sleep(800);
     }
 
     return { photos, failures, seenTitles };
@@ -402,7 +434,7 @@
         await report(origin, jobId, {
           ok: false,
           error:
-            "No vehicle photos could be captured from Customer Documents (blob fetch/canvas failed or images never loaded).",
+            "No vehicle photos could be captured from Customer Documents (images never loaded or capture failed).",
           debug: { tileTitles: seenTitles, photoTitles: [], failures },
         });
         debug("FAILED: 0 photos captured");
