@@ -101,27 +101,34 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       throw new Error("Popup blocked. Allow popups for this site and try again.");
     }
 
-    setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber}…`);
-    const scraped = await pollJob(job.id);
+    try {
+      setProgress(`(${index + 1}/${total}) Scraping ${row.rnNumber}…`);
+      const scraped = await pollJob(job.id);
 
-    if (scraped.status === "failed" || !scraped.fields) {
-      throw new Error(scraped.error || "AMP scrape failed");
+      if (scraped.status === "failed" || !scraped.fields) {
+        throw new Error(scraped.error || "AMP scrape failed");
+      }
+
+      setProgress(`(${index + 1}/${total}) Creating listing ${row.rnNumber}…`);
+      const res = await fetch(`/api/ziplabs/jobs/${job.id}/import`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : `Import failed (${res.status})`
+        );
+      }
+
+      return {
+        rnNumber: row.rnNumber,
+        status: "ok" as const,
+        detail: `Created listing with ${data.photoCount ?? 0} photo(s)`,
+      };
+    } finally {
+      // Userscript also closes after scrape; this covers timeouts / stuck tabs.
+      if (!popup.closed) {
+        popup.close();
+      }
     }
-
-    setProgress(`(${index + 1}/${total}) Creating listing ${row.rnNumber}…`);
-    const res = await fetch(`/api/ziplabs/jobs/${job.id}/import`, { method: "POST" });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(
-        typeof data.error === "string" ? data.error : `Import failed (${res.status})`
-      );
-    }
-
-    return {
-      rnNumber: row.rnNumber,
-      status: "ok" as const,
-      detail: `Created listing with ${data.photoCount ?? 0} photo(s)`,
-    };
   }
 
   async function handleFile(file: File | undefined) {

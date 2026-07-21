@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Tesla Trade-Ins — AMP acquisition scrape
 // @namespace    https://www.teslatradeins.com.au
-// @version      1.5.1
-// @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs.
+// @version      1.5.2
+// @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs. Closes the AMP tab when the scrape finishes (success or failure).
 // @match        https://amp.tesla.com/acquisition/*
 // @grant        none
 // @run-at       document-idle
@@ -479,9 +479,19 @@
     } catch (error) {
       const message = error instanceof Error ? error.message : "AMP scrape failed";
       debug(`FAILED: ${message}`);
-      await report(origin, jobId, { ok: false, error: message });
+      try {
+        await report(origin, jobId, { ok: false, error: message });
+      } catch (reportError) {
+        debug(`Report failed: ${formatError(reportError)}`);
+      }
     } finally {
       running = false;
+      debug("Closing AMP tab");
+      try {
+        window.close();
+      } catch {
+        // ignore — some browsers ignore close if the tab was not script-opened
+      }
     }
   }
 
