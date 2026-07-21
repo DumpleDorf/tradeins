@@ -36,9 +36,6 @@ type AnalyzeResponse = {
   error?: string;
 };
 
-/** AMP scrape is slow — create this many missing listings per CSV upload. Re-upload to continue. */
-const CREATE_BATCH_LIMIT = 3;
-
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -192,20 +189,19 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       const createQueue = plan.toCreate
         .map((rn) => byRn.get(rn.toUpperCase()))
         .filter((row): row is ZiplabsCsvRow => Boolean(row));
-      const batch = createQueue.slice(0, CREATE_BATCH_LIMIT);
       const created: string[] = [];
       const createErrors: { rnNumber: string; error: string }[] = [];
 
-      for (let i = 0; i < batch.length; i += 1) {
+      for (let i = 0; i < createQueue.length; i += 1) {
         try {
-          const result = await createOne(batch[i], i, batch.length);
+          const result = await createOne(createQueue[i], i, createQueue.length);
           created.push(result.rnNumber);
           nextLogs.push(result);
         } catch (err) {
           const message = err instanceof Error ? err.message : "Failed";
-          createErrors.push({ rnNumber: batch[i].rnNumber, error: message });
+          createErrors.push({ rnNumber: createQueue[i].rnNumber, error: message });
           nextLogs.push({
-            rnNumber: batch[i].rnNumber,
+            rnNumber: createQueue[i].rnNumber,
             status: "error",
             detail: message,
           });
@@ -214,7 +210,6 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         await sleep(500);
       }
 
-      const remainingCreates = Math.max(0, createQueue.length - batch.length);
       const resultPayload = {
         ranAt: new Date().toISOString(),
         fileName: file.name,
@@ -236,9 +231,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
           `Report rows: ${plan.reportCount}`,
           `Inconsistencies: ${plan.inconsistencies.length}`,
           `Deleted AVAILABLE not on report: ${deleted.length}`,
-          `Created: ${created.length}${
-            remainingCreates > 0 ? ` (${remainingCreates} still missing — re-upload CSV to continue)` : ""
-          }`,
+          `Created: ${created.length}`,
           createErrors.length ? `Create errors: ${createErrors.length}` : null,
         ]
           .filter(Boolean)
@@ -281,9 +274,9 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tesla Wholesale Website
         </a>{" "}
-        report as CSV, then upload it here. Sync will: create missing RNs (up to{" "}
-        {CREATE_BATCH_LIMIT} AMP scrapes per run), flag report/website conflicts, and delete
-        AVAILABLE listings not on the report.
+        report as CSV, then upload it here. Sync will: create every missing RN (AMP scrape
+        one-by-one), flag report/website conflicts, and delete AVAILABLE listings not on the
+        report.
       </p>
 
       <p className="mt-2 text-xs text-muted-foreground">
