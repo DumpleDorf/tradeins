@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tesla Trade-Ins — AMP acquisition scrape
 // @namespace    https://www.teslatradeins.com.au
-// @version      1.2.0
+// @version      1.3.0
 // @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs.
 // @match        https://amp.tesla.com/acquisition/*
 // @grant        none
@@ -13,6 +13,7 @@
     "Ownership Transfer Document",
     "Release of Liability",
     "Registration",
+    "Registration Document",
   ]);
 
   let activeJobId = null;
@@ -40,7 +41,7 @@
       "right:12px",
       "bottom:12px",
       "z-index:2147483647",
-      "max-width:360px",
+      "max-width:380px",
       "max-height:45vh",
       "overflow:auto",
       "padding:12px 14px",
@@ -59,7 +60,7 @@
   function debug(message) {
     const panel = ensureDebugPanel();
     const line = `[${new Date().toLocaleTimeString()}] ${message}`;
-    panel.textContent = `${line}\n${panel.textContent}`.slice(0, 4000);
+    panel.textContent = `${line}\n${panel.textContent}`.slice(0, 5000);
   }
 
   function inputValue(name) {
@@ -92,136 +93,218 @@
     return btoa(binary);
   }
 
-  async function fetchBlobWithRetry(src, attempts = 3) {
-    let lastError;
-    for (let i = 0; i < attempts; i += 1) {
+  async function waitForImageReady(img, timeoutMs = 8000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (img.src && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        return true;
+      }
       try {
-        const res = await fetch(src);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        if (!blob.type.startsWith("image/")) {
-          throw new Error(`Not an image (${blob.type || "unknown"})`);
+        if (typeof img.decode === "function") {
+          await img.decode();
+          if (img.naturalWidth > 0) return true;
         }
-        return blob;
-      } catch (error) {
-        lastError = error;
-        await sleep(400 * (i + 1));
+      } catch {
+        // keep waiting
       }
+      await sleep(200);
     }
-    throw lastError || new Error("Failed to fetch image blob");
+    return img.complete && img.naturalWidth > 0;
   }
 
-  function findScrollRoot() {
-    return (
-      document.querySelector("#current-files-tab") ||
-      document.querySelector(".tile-container") ||
-      document.scrollingElement ||
-      document.documentElement
-    );
+  async function captureViaCanvas(img) {
+    const ready = await waitForImageReady(img);
+    if (!ready) {
+      throw new Error("Image never finished loading in DOM");
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas unsupported");
+    ctx.drawImage(img, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    const base64 = dataUrl.split(",")[1];
+    if (!base64) throw new Error("Canvas capture empty");
+    return { contentBase64: base64, mimeType: "image/jpeg" };
   }
 
-  async function revealAllDocumentTiles() {
-    const root = findScrollRoot();
-    let stableRounds = 0;
-    let lastCount = -1;
+  async function captureViaFetch(img) {
+    const res = await fetch(img.src);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    if (!blob.type.startsWith("image/") && blob.size === 0) {
+      throw new Error(`Not an image (${blob.type || "unknown"})`);
+    }
+    // Some blob responses have empty type but are still images.
+    const mimeType = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+    return { contentBase64: await blobToBase64(blob), mimeType };
+  }
 
-    for (let i = 0; i < 40 && stableRounds < 4; i += 1) {
-      const wrappers = document.querySelectorAll("#current-files-tab .tile-wrapper, .tile-wrapper");
-      const images = document.querySelectorAll(
-        "#current-files-tab img.tile-asset-img, .tile-wrapper img.tile-asset-img"
+  async function captureImage(img) {
+    // Prefer canvas first — blob: URLs often revoke / fail to re-fetch on later AMP pages.
+    try {
+      return await captureViaCanvas(img);
+    } catch (canvasError) {
+      debug(
+        `Canvas capture failed (${canvasError instanceof Error ? canvasError.message : "error"}), trying fetch…`
       );
-      const count = wrappers.length;
-      debug(`Loading documents… tiles=${count}, images=${images.length}`);
+      return await captureViaFetch(img);
+    }
+  }
 
-      if (root instanceof Element) {
-        root.scrollTop = root.scrollHeight;
-      }
-      window.scrollTo(0, document.body.scrollHeight);
+  async function ensureTileImage(wrapper, title) {
+    const findImg = () => wrapper.querySelector("img.tile-asset-img");
 
-      // Nudge each tile into view so lazy thumbnails hydrate.
-      wrappers.forEach((wrapper, index) => {
+    let img = findImg();
+    if (img?.src) {
+      await waitForImageReady(img, 5000);
+      if (img.naturalWidth > 0) return img;
+    }
+
+    // Click the asset/card to force AMP to hydrate the thumbnail.
+    const clickTargets = [
+      wrapper.querySelector(".tds-card-asset"),
+      wrapper.querySelector(".tds-card"),
+      wrapper.querySelector(".pdf-click-catcher"),
+      wrapper,
+    ].filter(Boolean);
+
+    for (const target of clickTargets) {
+      try {
+        target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+      } catch {
         try {
-          wrapper.scrollIntoView({ block: index % 2 === 0 ? "start" : "end", inline: "nearest" });
+          target.click();
         } catch {
           // ignore
         }
-      });
-
-      await sleep(700);
-
-      if (count === lastCount && images.length > 0) {
-        stableRounds += 1;
-      } else {
-        stableRounds = 0;
-        lastCount = count;
+      }
+      await sleep(600);
+      img = findImg();
+      if (img?.src) {
+        const ready = await waitForImageReady(img, 6000);
+        if (ready) return img;
       }
     }
 
-    if (root instanceof Element) {
-      root.scrollTop = 0;
+    // Final wait loop — lazy images sometimes appear after neighboring tiles load.
+    for (let i = 0; i < 20; i += 1) {
+      img = findImg();
+      if (img?.src) {
+        const ready = await waitForImageReady(img, 2000);
+        if (ready) return img;
+      }
+      await sleep(300);
     }
-    window.scrollTo(0, 0);
-    await sleep(500);
+
+    debug(`No image element after retries: ${title}`);
+    return null;
+  }
+
+  async function uploadPhoto(origin, jobId, photo) {
+    const res = await fetch(`${origin}/api/ziplabs/jobs/${jobId}/photo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`photo upload failed (${res.status}): ${body.slice(0, 160)}`);
+    }
   }
 
   async function collectPhotos(origin, jobId) {
     const photos = [];
     const failures = [];
     const seenTitles = [];
-    const wrappers = [
-      ...document.querySelectorAll("#current-files-tab .tile-wrapper, .tile-wrapper"),
-    ];
 
-    debug(`Collecting from ${wrappers.length} document tiles…`);
+    // Wait until tiles exist.
+    await waitFor("#current-files-tab .tile-wrapper, .tile-wrapper", 60000);
+    await sleep(1000);
 
-    for (const wrapper of wrappers) {
-      const title = (wrapper.querySelector(".title-header")?.textContent || "").trim();
-      const fileName =
-        (wrapper.querySelector(".tile-name")?.textContent || `${title || "document"}.jpg`).trim();
-      seenTitles.push(title || "(untitled)");
+    // Process tiles one-by-one: scroll into view → force image → capture immediately.
+    // Re-query each loop because AMP may virtualize/replace nodes.
+    const processed = new Set();
+    let idleRounds = 0;
 
-      if (!title || EXCLUDED.has(title)) {
-        debug(`Skip excluded/empty: ${title || "(untitled)"}`);
-        continue;
-      }
+    while (idleRounds < 3) {
+      const wrappers = [
+        ...document.querySelectorAll("#current-files-tab .tile-wrapper, .tile-wrapper"),
+      ];
+      let madeProgress = false;
 
-      const img = wrapper.querySelector("img.tile-asset-img");
-      if (!img?.src) {
-        failures.push(`${title}: no img.tile-asset-img`);
-        debug(`Skip (no image element): ${title}`);
-        continue;
-      }
+      debug(`Tile pass: ${wrappers.length} tiles, ${processed.size} processed, ${photos.length} photos`);
 
-      try {
-        const blob = await fetchBlobWithRetry(img.src);
-        const contentBase64 = await blobToBase64(blob);
-        const photo = {
-          title,
-          fileName,
-          mimeType: blob.type || "image/jpeg",
-          contentBase64,
-        };
+      for (let index = 0; index < wrappers.length; index += 1) {
+        const wrapper = wrappers[index];
+        const title = (wrapper.querySelector(".title-header")?.textContent || "").trim();
+        const fileName = (
+          wrapper.querySelector(".tile-name")?.textContent || `${title || "document"}.jpg`
+        ).trim();
+        const key = `${title}::${fileName}`;
 
-        // Upload one photo at a time to avoid huge JSON payloads.
-        if (origin && jobId) {
-          const res = await fetch(`${origin}/api/ziplabs/jobs/${jobId}/photo`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ photo }),
-          });
-          if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`photo upload failed (${res.status}): ${body.slice(0, 160)}`);
-          }
-          debug(`Uploaded photo ${photos.length + 1}: ${title}`);
+        if (!seenTitles.includes(title || "(untitled)")) {
+          seenTitles.push(title || "(untitled)");
+        }
+        if (processed.has(key)) continue;
+        processed.add(key);
+        madeProgress = true;
+
+        if (!title || EXCLUDED.has(title)) {
+          debug(`Skip excluded/empty: ${title || "(untitled)"}`);
+          continue;
         }
 
-        photos.push(photo);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "photo failed";
-        failures.push(`${title}: ${message}`);
-        debug(`Photo failed: ${title} — ${message}`);
+        // Skip obvious PDFs with no image opportunity later if still no img.
+        const hasPdf = Boolean(wrapper.querySelector("iframe.pdf-preview, .pdf-container"));
+
+        try {
+          wrapper.scrollIntoView({ block: "center", inline: "nearest" });
+          await sleep(250);
+
+          const img = await ensureTileImage(wrapper, title);
+          if (!img) {
+            if (hasPdf) {
+              debug(`Skip PDF-only tile: ${title}`);
+            } else {
+              failures.push(`${title}: no image element`);
+              debug(`Skip (no image element): ${title}`);
+            }
+            continue;
+          }
+
+          const captured = await captureImage(img);
+          const photo = {
+            title,
+            fileName,
+            mimeType: captured.mimeType,
+            contentBase64: captured.contentBase64,
+          };
+
+          await uploadPhoto(origin, jobId, photo);
+          photos.push(photo);
+          debug(`Uploaded photo ${photos.length}: ${title}`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "photo failed";
+          failures.push(`${title}: ${message}`);
+          debug(`Photo failed: ${title} — ${message}`);
+        }
       }
+
+      if (!madeProgress) {
+        idleRounds += 1;
+      } else {
+        idleRounds = 0;
+      }
+
+      // Scroll container to encourage more lazy tiles, then re-scan once more.
+      const root =
+        document.querySelector("#current-files-tab") ||
+        document.querySelector(".tile-container");
+      if (root) root.scrollTop = root.scrollHeight;
+      window.scrollTo(0, document.body.scrollHeight);
+      await sleep(800);
     }
 
     return { photos, failures, seenTitles };
@@ -241,7 +324,6 @@
     }
 
     if (jobId && origin) {
-      // Strip bulky base64 from complete payload — photos already uploaded individually.
       const slim = {
         ...payload,
         photos: Array.isArray(payload.photos)
@@ -304,19 +386,28 @@
       debug("Opened Customer Documents");
 
       const docsReady = await waitFor(
-        "#current-files-tab .tile-wrapper, .tile-wrapper img.tile-asset-img, .tile-wrapper",
+        "#current-files-tab .tile-wrapper, .tile-wrapper",
         60000
       );
       if (!docsReady) {
         throw new Error("Customer Documents tiles did not load");
       }
 
-      await revealAllDocumentTiles();
       const { photos, failures, seenTitles } = await collectPhotos(origin, jobId);
-
       debug(
         `Done collecting: ${photos.length} photo(s). Titles seen: ${seenTitles.join(", ")}`
       );
+
+      if (photos.length === 0) {
+        await report(origin, jobId, {
+          ok: false,
+          error:
+            "No vehicle photos could be captured from Customer Documents (blob fetch/canvas failed or images never loaded).",
+          debug: { tileTitles: seenTitles, photoTitles: [], failures },
+        });
+        debug("FAILED: 0 photos captured");
+        return;
+      }
 
       await report(origin, jobId, {
         ok: true,
@@ -346,7 +437,6 @@
     await scrapeJob(jobId, origin);
   }
 
-  // Re-run when the shared AMP window navigates to the next RN/job.
   window.addEventListener("hashchange", () => {
     void tick();
   });

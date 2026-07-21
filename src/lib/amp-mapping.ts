@@ -4,6 +4,7 @@ export const AMP_EXCLUDED_DOCUMENT_TITLES = new Set([
   "Ownership Transfer Document",
   "Release of Liability",
   "Registration",
+  "Registration Document",
 ]);
 
 const SERVICE_HISTORY_MAP: Record<string, string> = {
