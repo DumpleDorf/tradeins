@@ -42,7 +42,7 @@ CREATE TABLE "PartnerProfile" (
 
 -- CreateTable
 CREATE TABLE "Vehicle" (
-    "id" TEXT NOT NULL,
+    "vehicleRn" TEXT NOT NULL,
     "vin" TEXT NOT NULL,
     "licensePlateNumber" TEXT NOT NULL,
     "year" INTEGER NOT NULL,
@@ -63,7 +63,8 @@ CREATE TABLE "Vehicle" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "Vehicle_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Vehicle_pkey" PRIMARY KEY ("vehicleRn"),
+    CONSTRAINT "Vehicle_vehicleRn_rn_check" CHECK ("vehicleRn" ~ '^RN[0-9]+$')
 );
 
 -- CreateTable

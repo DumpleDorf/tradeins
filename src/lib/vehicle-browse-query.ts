@@ -65,6 +65,7 @@ export function buildVehicleBrowseWhere(
     const query = filters.search.trim();
     const yearMatch = /^\d{4}$/.test(query) ? Number(query) : null;
     const searchConditions: Prisma.VehicleWhereInput[] = [
+      { id: { contains: query, mode: "insensitive" } },
       { make: { contains: query, mode: "insensitive" } },
       { model: { contains: query, mode: "insensitive" } },
       { trim: { contains: query, mode: "insensitive" } },

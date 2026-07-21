@@ -5,7 +5,15 @@ export const loginSchema = z.object({
   password: z.string().min(8),
 });
 
+/** ZipLabs/AMP acquisition RN used as Vehicle.id primary key. */
+export const rnNumberSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^RN\d+$/, "Vehicle RN must look like RN126870852");
+
 export const vehicleSchema = z.object({
+  id: rnNumberSchema,
   vin: z.string().min(11).max(17),
   licensePlateNumber: z.string().min(1),
   year: z.coerce.number().int(),

@@ -321,7 +321,12 @@ export default function TeslaListingDetailPage() {
 
             <RequiredFieldsHint />
 
-            <VehicleFormFields defaultValues={vehicle} idPrefix="edit-" showPhotos />
+            <VehicleFormFields
+              defaultValues={vehicle}
+              idPrefix="edit-"
+              showPhotos
+              rnReadOnly
+            />
 
             <div className="space-y-3 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm">
               <h2 className="font-semibold">

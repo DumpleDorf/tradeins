@@ -36,6 +36,8 @@ type VehicleFormFieldsProps = {
   idPrefix?: string;
   showPhotos?: boolean;
   photosRequired?: boolean;
+  /** When true, RN Number (primary key) cannot be changed. */
+  rnReadOnly?: boolean;
 };
 
 export function VehicleFormFields({
@@ -43,11 +45,28 @@ export function VehicleFormFields({
   idPrefix = "",
   showPhotos = true,
   photosRequired = false,
+  rnReadOnly = false,
 }: VehicleFormFieldsProps) {
   const fieldId = (name: string) => `${idPrefix}${name}`;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-2 sm:col-span-2">
+        <Label htmlFor={fieldId("id")}>
+          Vehicle RN <RequiredAsterisk />
+        </Label>
+        <Input
+          id={fieldId("id")}
+          name="id"
+          defaultValue={defaultValues?.id}
+          placeholder="RN126870852"
+          pattern="[Rr][Nn]\d+"
+          title="Vehicle RN must look like RN126870852"
+          required
+          readOnly={rnReadOnly}
+          className={rnReadOnly ? "bg-muted" : undefined}
+        />
+      </div>
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor={fieldId("vin")}>
           VIN <RequiredAsterisk />

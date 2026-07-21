@@ -160,19 +160,22 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
-    if (parsed.data.vin && parsed.data.vin !== existing.vin) {
+    // RN Number is the primary key — never change it via edit.
+    const { id: _rnId, ...updateData } = parsed.data;
+
+    if (updateData.vin && updateData.vin !== existing.vin) {
       const vinTaken = await prisma.vehicle.findUnique({
-        where: { vin: parsed.data.vin },
+        where: { vin: updateData.vin },
       });
       if (vinTaken) {
         return NextResponse.json({ error: "VIN already in use" }, { status: 409 });
       }
     }
 
-    if (Object.keys(parsed.data).length > 0) {
+    if (Object.keys(updateData).length > 0) {
       await prisma.vehicle.update({
         where: { id },
-        data: parsed.data,
+        data: updateData,
       });
     }
 

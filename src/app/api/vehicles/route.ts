@@ -85,6 +85,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "At least one photo is required" }, { status: 400 });
     }
 
+    const existingByRn = await prisma.vehicle.findUnique({
+      where: { id: parsed.data.id },
+      select: { id: true },
+    });
+    if (existingByRn) {
+      return NextResponse.json(
+        { error: `A listing with Vehicle RN ${parsed.data.id} already exists` },
+        { status: 409 }
+      );
+    }
+
+    const existingByVin = await prisma.vehicle.findUnique({
+      where: { vin: parsed.data.vin },
+      select: { id: true },
+    });
+    if (existingByVin) {
+      return NextResponse.json({ error: "VIN already in use" }, { status: 409 });
+    }
+
     const vehicle = await prisma.vehicle.create({
       data: {
         ...parsed.data,

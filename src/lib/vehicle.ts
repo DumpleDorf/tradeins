@@ -14,6 +14,8 @@ export type ServiceHistory = (typeof SERVICE_HISTORY_OPTIONS)[number];
 export type AuState = (typeof AU_STATES)[number];
 
 export type VehicleDetails = {
+  /** RN number — also the Vehicle primary key. */
+  id: string;
   vin: string;
   licensePlateNumber: string;
   year: number;
@@ -46,6 +48,7 @@ export function formatVehicleLocation(site?: string | null, state?: string | nul
 
 export function getVehicleDetailRows(vehicle: VehicleDetails) {
   return [
+    ["Vehicle RN", vehicle.id],
     ["VIN", vehicle.vin],
     ["License Plate Number", vehicle.licensePlateNumber],
     ["Year", String(vehicle.year)],

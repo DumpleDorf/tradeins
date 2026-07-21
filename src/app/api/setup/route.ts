@@ -72,6 +72,7 @@ export async function POST(request: Request) {
 
   await prisma.vehicle.create({
     data: {
+      id: "RN000000001",
       vin: "JF1GT7KL5MG123216",
       licensePlateNumber: "319CN4",
       year: 2021,

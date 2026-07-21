@@ -51,12 +51,12 @@ VALUES (
 ON CONFLICT ("userId") DO NOTHING;
 
 INSERT INTO "Vehicle" (
-  "id", "vin", "licensePlateNumber", "year", "make", "model", "trim",
+  "vehicleRn", "vin", "licensePlateNumber", "year", "make", "model", "trim",
   "odometer", "price", "site", "state", "numberOfKeys", "vehicleDamage", "serviceHistory", "vehicleNotes",
   "status", "listedById", "createdAt", "updatedAt"
 )
 VALUES (
-  'vehicle_demo_001',
+  'RN000000001',
   'JF1GT7KL5MG123216',
   '319CN4',
   2021,
@@ -81,7 +81,7 @@ ON CONFLICT ("vin") DO NOTHING;
 INSERT INTO "VehiclePhoto" ("id", "vehicleId", "url", "sortOrder", "createdAt")
 VALUES (
   'vehicle_photo_001',
-  'vehicle_demo_001',
+  'RN000000001',
   'https://digitalassets.tesla.com/tesla-contents/image/upload/f_auto,q_auto/Mega-Menu-Vehicles-Model-3-Performance-LHD.png',
   0,
   NOW()

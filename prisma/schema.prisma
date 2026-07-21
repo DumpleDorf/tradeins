@@ -67,7 +67,8 @@ model PartnerProfile {
 }
 
 model Vehicle {
-  id                 String        @id @default(cuid())
+  /// ZipLabs/AMP RN number (e.g. RN126870852). DB column: vehicleRn.
+  id                 String        @id @map("vehicleRn")
   vin                String        @unique
   licensePlateNumber String
   year               Int
