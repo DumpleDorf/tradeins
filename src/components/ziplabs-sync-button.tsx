@@ -111,12 +111,18 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
       const scraped = await pollJob(job.id);
 
       if (scraped.status === "failed" || !scraped.fields) {
-        throw new Error(scraped.error || "AMP scrape failed");
+        const debugHint = scraped.debug?.tileTitles?.length
+          ? ` Tiles seen: ${scraped.debug.tileTitles.join(", ")}`
+          : "";
+        throw new Error(`${scraped.error || "AMP scrape failed"}.${debugHint}`);
       }
 
       const photoCount = scraped.photos?.length ?? 0;
+      const photoTitles = scraped.debug?.photoTitles?.join(", ");
       setProgress(
-        `(${index + 1}/${total}) Creating listing ${row.rnNumber} with ${photoCount} photo(s)…`
+        `(${index + 1}/${total}) Creating listing ${row.rnNumber} with ${photoCount} photo(s)${
+          photoTitles ? ` [${photoTitles}]` : ""
+        }…`
       );
       const res = await fetch("/api/vehicles/ziplabs-import", {
         method: "POST",
@@ -135,10 +141,13 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         );
       }
 
+      const titles = scraped.debug?.photoTitles?.join(", ");
       return {
         rnNumber: row.rnNumber,
         status: "ok" as const,
-        detail: `Created listing with ${data.photoCount ?? 0} photo(s)`,
+        detail: `Created listing with ${data.photoCount ?? 0} photo(s)${
+          titles ? ` — ${titles}` : ""
+        }`,
       };
     } finally {
       setProgress(`(${index + 1}/${total}) Closing AMP tab for ${row.rnNumber}…`);
@@ -243,11 +252,12 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         >
           Tampermonkey
         </a>
-        , then install the{" "}
+        , then install/update the{" "}
         <a href="/amp-scrape.user.js" className="underline underline-offset-2">
-          AMP scrape helper
+          AMP scrape helper (v1.2.0)
         </a>
-        . Stay logged into AMP and allow popups for this site.
+        . Stay logged into AMP and allow popups. While scraping, a black debug box appears
+        on the AMP page (bottom-right) showing tiles/photos found — no browser console needed.
       </p>
 
       {progress ? <p className="mt-3 text-sm text-muted-foreground">{progress}</p> : null}

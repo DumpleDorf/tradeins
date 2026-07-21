@@ -34,8 +34,21 @@ export async function POST(request: NextRequest, context: Context) {
         ok: true;
         fields: AmpScrapedFields;
         photos?: AmpScrapedPhoto[];
+        debug?: {
+          tileTitles?: string[];
+          photoTitles?: string[];
+          failures?: string[];
+        };
       }
-    | { ok: false; error?: string }
+    | {
+        ok: false;
+        error?: string;
+        debug?: {
+          tileTitles?: string[];
+          photoTitles?: string[];
+          failures?: string[];
+        };
+      }
     | null;
 
   if (!body || typeof body.ok !== "boolean") {
@@ -47,10 +60,12 @@ export async function POST(request: NextRequest, context: Context) {
         ok: true,
         fields: body.fields,
         photos: Array.isArray(body.photos) ? body.photos : [],
+        debug: body.debug,
       })
     : await completeZiplabsJob(id, {
         ok: false,
         error: body.error || "AMP scrape failed",
+        debug: body.debug,
       });
 
   if (!updated) {

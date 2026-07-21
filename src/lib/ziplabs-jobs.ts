@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db";
 import type { AmpScrapedFields, AmpScrapedPhoto } from "@/lib/amp-mapping";
 
+export type ZiplabsJobDebug = {
+  tileTitles?: string[];
+  photoTitles?: string[];
+  failures?: string[];
+};
+
 export type ZiplabsJobRecord = {
   id: string;
   rnNumber: string;
@@ -10,6 +16,7 @@ export type ZiplabsJobRecord = {
   error?: string;
   fields?: AmpScrapedFields;
   photos?: AmpScrapedPhoto[];
+  debug?: ZiplabsJobDebug;
   createdAt: string;
   updatedAt: string;
 };
@@ -55,21 +62,60 @@ export async function getZiplabsJob(id: string): Promise<ZiplabsJobRecord | null
   }
 }
 
-export async function completeZiplabsJob(
+export async function appendZiplabsJobPhoto(
   id: string,
-  result:
-    | { ok: true; fields: AmpScrapedFields; photos: AmpScrapedPhoto[] }
-    | { ok: false; error: string }
+  photo: AmpScrapedPhoto
 ): Promise<ZiplabsJobRecord | null> {
   const existing = await getZiplabsJob(id);
   if (!existing) return null;
+
+  const photos = [...(existing.photos ?? []), photo];
+  const updated: ZiplabsJobRecord = {
+    ...existing,
+    photos,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await prisma.systemSetting.update({
+    where: { key: jobKey(id) },
+    data: { value: JSON.stringify(updated) },
+  });
+
+  return updated;
+}
+
+export async function completeZiplabsJob(
+  id: string,
+  result:
+    | {
+        ok: true;
+        fields: AmpScrapedFields;
+        photos?: AmpScrapedPhoto[];
+        debug?: ZiplabsJobDebug;
+      }
+    | { ok: false; error: string; debug?: ZiplabsJobDebug }
+): Promise<ZiplabsJobRecord | null> {
+  const existing = await getZiplabsJob(id);
+  if (!existing) return null;
+
+  // Prefer photos already uploaded one-by-one; ignore empty base64 stubs from complete.
+  const incomingPhotos = (result.ok ? result.photos : undefined)?.filter(
+    (photo) => Boolean(photo.contentBase64)
+  );
+  const photos =
+    existing.photos && existing.photos.length > 0
+      ? existing.photos
+      : incomingPhotos && incomingPhotos.length > 0
+        ? incomingPhotos
+        : existing.photos;
 
   const updated: ZiplabsJobRecord = {
     ...existing,
     status: result.ok ? "scraped" : "failed",
     error: result.ok ? undefined : result.error,
     fields: result.ok ? result.fields : existing.fields,
-    photos: result.ok ? result.photos : existing.photos,
+    photos,
+    debug: result.debug ?? existing.debug,
     updatedAt: new Date().toISOString(),
   };
 
