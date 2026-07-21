@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { AmpScrapedFields, AmpScrapedPhoto } from "@/lib/amp-mapping";
+import { sortByPhotoLabel } from "@/lib/photo-order";
 
 export type ZiplabsJobDebug = {
   tileTitles?: string[];
@@ -69,7 +70,7 @@ export async function appendZiplabsJobPhoto(
   const existing = await getZiplabsJob(id);
   if (!existing) return null;
 
-  const photos = [...(existing.photos ?? []), photo];
+  const photos = sortByPhotoLabel([...(existing.photos ?? []), photo], (p) => p.title || p.fileName);
   const updated: ZiplabsJobRecord = {
     ...existing,
     photos,
@@ -102,12 +103,15 @@ export async function completeZiplabsJob(
   const incomingPhotos = (result.ok ? result.photos : undefined)?.filter(
     (photo) => Boolean(photo.contentBase64)
   );
-  const photos =
+  const rawPhotos =
     existing.photos && existing.photos.length > 0
       ? existing.photos
       : incomingPhotos && incomingPhotos.length > 0
         ? incomingPhotos
         : existing.photos;
+  const photos = rawPhotos
+    ? sortByPhotoLabel(rawPhotos, (p) => p.title || p.fileName)
+    : rawPhotos;
 
   const updated: ZiplabsJobRecord = {
     ...existing,

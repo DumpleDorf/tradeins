@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { mapAmpScrapeToVehicleInput } from "@/lib/amp-mapping";
+import { sortByPhotoLabel } from "@/lib/photo-order";
 import { getZiplabsJob } from "@/lib/ziplabs-jobs";
 import { vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhotos } from "@/lib/storage";
@@ -13,11 +14,17 @@ type Context = { params: Promise<{ id: string }> };
 function photosToFiles(
   photos: NonNullable<Awaited<ReturnType<typeof getZiplabsJob>>>["photos"]
 ): File[] {
-  return (photos ?? [])
+  const ordered = sortByPhotoLabel(photos ?? [], (photo) => photo.title || photo.fileName);
+  return ordered
     .filter((photo) => Boolean(photo.contentBase64))
     .map((photo, index) => {
       const bytes = Uint8Array.from(Buffer.from(photo.contentBase64, "base64"));
-      const name = photo.fileName || `photo-${index + 1}.jpg`;
+      // Prefer AMP title so storage object keys (and sortOrder) match FrontAngle etc.
+      const stem = (photo.title || photo.fileName || `photo-${index + 1}`).replace(
+        /\.[^.]+$/,
+        ""
+      );
+      const name = `${stem}.jpg`;
       return new File([bytes], name, { type: photo.mimeType || "image/jpeg" });
     });
 }
@@ -55,7 +62,10 @@ export async function POST(_request: Request, context: Context) {
     );
   }
 
-  const photos = (job.photos ?? []).filter((photo) => Boolean(photo.contentBase64));
+  const photos = sortByPhotoLabel(
+    (job.photos ?? []).filter((photo) => Boolean(photo.contentBase64)),
+    (photo) => photo.title || photo.fileName
+  );
   if (photos.length === 0) {
     return NextResponse.json(
       { error: "At least one image photo is required (PDFs/excluded docs do not count)." },

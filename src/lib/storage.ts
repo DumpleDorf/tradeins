@@ -1,3 +1,4 @@
+import { sortByPhotoLabel } from "@/lib/photo-order";
 import {
   formatPhotoUploadError,
   MAX_VEHICLE_PHOTO_BYTES,
@@ -93,8 +94,15 @@ export async function uploadVehiclePhoto(
 
   await ensureVehiclePhotoBucket();
 
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${vehicleId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const ext =
+    (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  // Keep a sanitized stem in the object key so sortOrder migrations can match AMP labels.
+  const stem = file.name
+    .replace(/\.[^.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64);
+  const labelPart = stem ? `${stem}-` : "";
+  const path = `${vehicleId}/${Date.now()}-${labelPart}${crypto.randomUUID()}.${ext}`;
   const contentType = file.type || "image/jpeg";
 
   const uploadRes = await fetch(
@@ -126,11 +134,12 @@ export async function uploadVehiclePhotos(
   const warnings: string[] = [];
   let uploaded = 0;
 
-  for (const file of files) {
-    if (!file || file.size === 0) {
-      continue;
-    }
+  const ordered = sortByPhotoLabel(
+    files.filter((file) => file && file.size > 0),
+    (file) => file.name
+  );
 
+  for (const file of ordered) {
     try {
       const url = await uploadVehiclePhoto(file, vehicleId);
       await savePhoto(url, startSortOrder + uploaded);

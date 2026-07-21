@@ -298,7 +298,7 @@ export function ZiplabsSyncButton({ className }: ZiplabsSyncButtonProps) {
         </a>
         , then install/update the{" "}
         <a href="/amp-scrape.user.js" className="underline underline-offset-2">
-          AMP scrape helper (v1.5.3)
+          AMP scrape helper (v1.5.4)
         </a>
         . Stay logged into AMP and allow popups.
       </p>

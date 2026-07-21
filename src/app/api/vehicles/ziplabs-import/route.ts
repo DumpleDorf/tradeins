@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { canManageListings } from "@/lib/rbac";
 import { mapAmpScrapeToVehicleInput, type AmpScrapedFields, type AmpScrapedPhoto } from "@/lib/amp-mapping";
+import { sortByPhotoLabel } from "@/lib/photo-order";
 import { vehicleSchema } from "@/lib/validations";
 import { uploadVehiclePhotos } from "@/lib/storage";
 
@@ -15,9 +16,14 @@ type ImportBody = {
 };
 
 function photosToFiles(photos: AmpScrapedPhoto[]): File[] {
-  return photos.map((photo, index) => {
+  const ordered = sortByPhotoLabel(photos, (photo) => photo.title || photo.fileName);
+  return ordered.map((photo, index) => {
     const bytes = Uint8Array.from(Buffer.from(photo.contentBase64, "base64"));
-    const name = photo.fileName || `photo-${index + 1}.jpg`;
+    const stem = (photo.title || photo.fileName || `photo-${index + 1}`).replace(
+      /\.[^.]+$/,
+      ""
+    );
+    const name = `${stem}.jpg`;
     return new File([bytes], name, { type: photo.mimeType || "image/jpeg" });
   });
 }

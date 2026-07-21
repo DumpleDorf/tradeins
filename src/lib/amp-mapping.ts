@@ -1,14 +1,8 @@
+import { VEHICLE_PHOTO_SORT_ORDER } from "@/lib/photo-order";
 import { AU_STATES, type AuState } from "@/lib/vehicle";
 
 /** Photo tile titles scraped from AMP (case-insensitive match / contains). Also allow Damage_*. */
-export const AMP_ALLOWED_PHOTO_TITLES = [
-  "Odometer",
-  "IntFrontSeats",
-  "ExtDriverSide",
-  "ExtPassengerSide",
-  "FrontAngle",
-  "ReverseAngle",
-] as const;
+export const AMP_ALLOWED_PHOTO_TITLES = VEHICLE_PHOTO_SORT_ORDER;
 
 const SERVICE_HISTORY_MAP: Record<string, string> = {
   COMPLETE_SERVICE_HISTORY: "Full Service History",

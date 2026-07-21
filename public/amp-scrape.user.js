@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Tesla Trade-Ins — AMP acquisition scrape
 // @namespace    https://www.teslatradeins.com.au
-// @version      1.5.3
+// @version      1.5.4
 // @description  Scrape AMP acquisition fields/photos for Trade-Ins ZipLabs import jobs. Only uploads allowlisted photo tiles (vehicle photos + Damage_*), excluding customer documents. Closes the AMP tab when the scrape finishes (success or failure).
 // @match        https://amp.tesla.com/acquisition/*
 // @grant        none
@@ -9,16 +9,55 @@
 // ==/UserScript==
 
 (function teslaTradeinsAmpScrape() {
-  /** Tile titles / labels we scrape. Everything else (customer docs) is skipped. */
+  /**
+   * Tile titles / labels we scrape (also canonical gallery order).
+   * Everything else (customer docs) is skipped. Damage_* allowed separately.
+   */
   const ALLOWED_TITLES = [
-    "Odometer",
-    "IntFrontSeats",
+    "FrontAngle",
     "ExtDriverSide",
     "ExtPassengerSide",
-    "FrontAngle",
     "ReverseAngle",
+    "IntFrontSeats",
+    "Odometer",
   ];
   const ALLOWED_TITLE_NORMALIZED = ALLOWED_TITLES.map((name) => name.toLowerCase());
+  const DAMAGE_RANK = ALLOWED_TITLES.length;
+  const UNKNOWN_RANK = DAMAGE_RANK + 1;
+
+  function photoLabelRank(label) {
+    const normalized = String(label || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\.[a-z0-9]+$/i, "");
+    if (!normalized) return { rank: UNKNOWN_RANK, secondary: "" };
+    for (let i = 0; i < ALLOWED_TITLE_NORMALIZED.length; i += 1) {
+      const name = ALLOWED_TITLE_NORMALIZED[i];
+      if (normalized === name || normalized.includes(name)) {
+        return { rank: i, secondary: normalized };
+      }
+    }
+    if (normalized.startsWith("damage_")) {
+      return { rank: DAMAGE_RANK, secondary: normalized };
+    }
+    return { rank: UNKNOWN_RANK, secondary: normalized };
+  }
+
+  function sortPhotosForGallery(photos) {
+    return photos
+      .map((photo, index) => ({ photo, index }))
+      .sort((a, b) => {
+        const ka = photoLabelRank(a.photo.title || a.photo.fileName);
+        const kb = photoLabelRank(b.photo.title || b.photo.fileName);
+        if (ka.rank !== kb.rank) return ka.rank - kb.rank;
+        if (ka.rank >= DAMAGE_RANK) {
+          const sec = ka.secondary.localeCompare(kb.secondary);
+          if (sec !== 0) return sec;
+        }
+        return a.index - b.index;
+      })
+      .map(({ photo }) => photo);
+  }
 
   let activeJobId = null;
   let running = false;
@@ -466,9 +505,11 @@
         throw new Error("Customer Documents tiles did not load");
       }
 
-      const { photos, failures, seenTitles } = await collectPhotos(origin, jobId);
+      const collected = await collectPhotos(origin, jobId);
+      const photos = sortPhotosForGallery(collected.photos);
+      const { failures, seenTitles } = collected;
       debug(
-        `Done collecting: ${photos.length} photo(s). Titles seen: ${seenTitles.join(", ")}`
+        `Done collecting: ${photos.length} photo(s). Order: ${photos.map((p) => p.title).join(", ")}`
       );
       if (failures.length) {
         debug(`Failures: ${failures.join(" | ")}`);
