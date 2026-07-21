@@ -5,7 +5,6 @@ import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
 import { VehicleBrowse } from "@/components/inventory/vehicle-browse";
 import { Button } from "@/components/ui/button";
-import { Disclaimer } from "@/components/disclaimer";
 
 export default function TeslaListingsPage() {
   return (
@@ -20,10 +19,6 @@ export default function TeslaListingsPage() {
           </Link>
         }
       />
-
-      <div className="animate-slide-up">
-        <Disclaimer variant="listing" />
-      </div>
 
       <div className="mt-8">
         <VehicleBrowse

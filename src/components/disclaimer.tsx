@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 import { formatUserRoleLabel } from "@/lib/audit-display";
-import { DISCLAIMER, LISTING_DISCLAIMER } from "@/lib/utils";
+import { DISCLAIMER } from "@/lib/utils";
 
-export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "listing" | "hero" }) {
+export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "hero" }) {
   if (variant === "hero") {
     return (
       <div className="hero-text-shadow rounded-sm border border-white/20 bg-black/40 px-4 py-3 text-sm text-white/90 backdrop-blur-sm">
@@ -13,7 +13,7 @@ export function Disclaimer({ variant = "partner" }: { variant?: "partner" | "lis
 
   return (
     <div className="rounded-sm border border-tesla-red/30 bg-tesla-red/5 px-4 py-3 text-sm text-muted-foreground backdrop-blur-sm">
-      {variant === "listing" ? LISTING_DISCLAIMER : DISCLAIMER}
+      {DISCLAIMER}
     </div>
   );
 }

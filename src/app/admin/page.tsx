@@ -1,12 +1,24 @@
+"use client";
+
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
-import { Disclaimer } from "@/components/disclaimer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
 
-const teslaLinks = [
+const teslaLinks: {
+  href: string;
+  title: string;
+  desc: string;
+  showReservationBadge?: boolean;
+}[] = [
   { href: "/tesla/listings", title: "Listings", desc: "Create and manage vehicle listings" },
-  { href: "/tesla/reservations", title: "Reserved / Sold", desc: "Review reserved vehicles and confirm sales" },
+  {
+    href: "/tesla/reservations",
+    title: "Reserved / Sold",
+    desc: "Review reserved vehicles and confirm sales",
+    showReservationBadge: true,
+  },
   { href: "/tesla/reporting", title: "Reporting", desc: "Inventory stats and reserved vehicle overview" },
   { href: "/tesla/partners", title: "Wholesalers", desc: "Invite and manage wholesaler accounts" },
   { href: "/tesla/audit", title: "Audit Log", desc: "View all platform activity" },
@@ -29,10 +41,6 @@ export default function AdminDashboardPage() {
         showBack={false}
       />
 
-      <div className="animate-slide-up">
-        <Disclaimer variant="listing" />
-      </div>
-
       <section className="mt-8">
         <h2 className="text-lg font-medium">Trade-In Management</h2>
         <div className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -45,7 +53,10 @@ export default function AdminDashboardPage() {
             >
               <Card className={cardClassName}>
                 <CardHeader>
-                  <CardTitle>{link.title}</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    {link.title}
+                    {link.showReservationBadge ? <ReservationRequestsBadge /> : null}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">{link.desc}</p>

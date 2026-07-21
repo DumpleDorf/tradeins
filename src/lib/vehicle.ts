@@ -3,6 +3,7 @@ export const VEHICLE_DAMAGE_OPTIONS = ["Yes", "No"] as const;
 export const SERVICE_HISTORY_OPTIONS = [
   "Full Service History",
   "Partial Service History",
+  "Electronic Service History",
   "No Service History",
 ] as const;
 

@@ -173,7 +173,7 @@ export default function TeslaPartnersPage() {
         </div>
         <div className="space-y-1">
           <Label htmlFor={`${formId}-email`}>
-            Primary Contact (email) <RequiredAsterisk />
+            Primary Contact/Login (email) <RequiredAsterisk />
           </Label>
           <Input
             id={`${formId}-email`}

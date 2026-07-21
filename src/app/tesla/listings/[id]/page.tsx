@@ -6,7 +6,6 @@ import { PageShell } from "@/components/page-shell";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import { ListingPhotoManager, type ManagedPhoto } from "@/components/listing-photo-manager";
 import { BackLink } from "@/components/back-link";
-import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import {
   RequiredAsterisk,
@@ -83,6 +82,8 @@ export default function TeslaListingDetailPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
+  const [statusError, setStatusError] = useState("");
+  const [removeError, setRemoveError] = useState("");
   const [photoWarning, setPhotoWarning] = useState("");
   const [photosToRemove, setPhotosToRemove] = useState<string[]>([]);
   const [orderedPhotos, setOrderedPhotos] = useState<ManagedPhoto[]>([]);
@@ -221,13 +222,13 @@ export default function TeslaListingDetailPage() {
 
   async function handleRemove() {
     setRemoving(true);
-    setError("");
+    setRemoveError("");
 
     const res = await fetch(`/api/vehicles/${id}`, { method: "DELETE" });
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Failed to remove listing");
+      setRemoveError(data.error ?? "Failed to remove listing");
       setRemoving(false);
       return;
     }
@@ -239,12 +240,12 @@ export default function TeslaListingDetailPage() {
   async function handleStatusChange() {
     if (!vehicle) return;
     if (needsPartner && !partnerId) {
-      setError("Select a wholesaler when moving to Reserved or Sold.");
+      setStatusError("Select a wholesaler when moving to Reserved or Sold.");
       return;
     }
 
     setStatusBusy(true);
-    setError("");
+    setStatusError("");
 
     const res = await fetch(`/api/vehicles/${id}/status`, {
       method: "POST",
@@ -258,7 +259,7 @@ export default function TeslaListingDetailPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error ?? "Failed to update status");
+      setStatusError(data.error ?? "Failed to update status");
       setStatusBusy(false);
       return;
     }
@@ -304,15 +305,11 @@ export default function TeslaListingDetailPage() {
       <BackLink href="/tesla/listings" label="Back to listings" />
 
       <div className={cn("mt-6", editing && "mx-auto max-w-2xl")}>
-        <Disclaimer variant="listing" />
-
         {photoWarning && (
           <p className="mt-4 rounded-sm border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Listing saved, but photos could not be uploaded: {photoWarning}
           </p>
         )}
-
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
 
         {editing ? (
           <form onSubmit={handleEditSubmit} className="mt-8 space-y-6">
@@ -346,6 +343,12 @@ export default function TeslaListingDetailPage() {
               </p>
             </div>
 
+            {error && (
+              <p className="text-center text-sm text-red-400" role="alert">
+                {error}
+              </p>
+            )}
+
             <div className="flex justify-center gap-3">
               <Button type="submit" disabled={saving}>
                 {saving ? "Saving..." : "Save changes"}
@@ -359,6 +362,7 @@ export default function TeslaListingDetailPage() {
           <div className="mt-8 animate-slide-up space-y-8">
             <VehicleDetailContent
               vehicle={vehicle}
+              showListedBy
               subtitle={`VIN: ${vehicle.vin}`}
               actions={
                 <>
@@ -368,7 +372,13 @@ export default function TeslaListingDetailPage() {
                     </Button>
                   )}
                   {canDelete && (
-                    <Button variant="destructive" onClick={() => setShowConfirm(true)}>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setRemoveError("");
+                        setShowConfirm(true);
+                      }}
+                    >
                       Remove listing
                     </Button>
                   )}
@@ -381,11 +391,22 @@ export default function TeslaListingDetailPage() {
                       Remove this listing permanently? It will be deleted from partner inventory
                       and cannot be undone.
                     </p>
+                    {removeError && (
+                      <p className="text-sm text-red-400" role="alert">
+                        {removeError}
+                      </p>
+                    )}
                     <div className="flex gap-3">
                       <Button variant="destructive" onClick={handleRemove} disabled={removing}>
                         {removing ? "Removing..." : "Confirm remove"}
                       </Button>
-                      <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setRemoveError("");
+                          setShowConfirm(false);
+                        }}
+                      >
                         Cancel
                       </Button>
                     </div>
@@ -420,9 +441,10 @@ export default function TeslaListingDetailPage() {
                         id="next-status"
                         className="flex h-10 w-full rounded-sm border border-border bg-card px-3 text-sm"
                         value={nextStatus}
-                        onChange={(e) =>
-                          setNextStatus(e.target.value as "AVAILABLE" | "RESERVED" | "SOLD")
-                        }
+                        onChange={(e) => {
+                          setStatusError("");
+                          setNextStatus(e.target.value as "AVAILABLE" | "RESERVED" | "SOLD");
+                        }}
                       >
                         {vehicle.status !== "AVAILABLE" && (
                           <option value="AVAILABLE">Available (re-list / release)</option>
@@ -440,8 +462,12 @@ export default function TeslaListingDetailPage() {
                           id="partner-select"
                           className="flex h-10 w-full rounded-sm border border-border bg-card px-3 text-sm"
                           value={partnerId}
-                          onChange={(e) => setPartnerId(e.target.value)}
+                          onChange={(e) => {
+                            setStatusError("");
+                            setPartnerId(e.target.value);
+                          }}
                           required
+                          aria-invalid={Boolean(statusError && !partnerId)}
                         >
                           <option value="">Select wholesaler</option>
                           {partners.map((partner) => {
@@ -474,6 +500,11 @@ export default function TeslaListingDetailPage() {
                         className="flex w-full rounded-sm border border-border bg-card px-3 py-2 text-sm"
                       />
                     </div>
+                    {statusError && (
+                      <p className="text-sm text-red-400" role="alert">
+                        {statusError}
+                      </p>
+                    )}
                     <Button className="w-full" onClick={handleStatusChange} disabled={statusBusy}>
                       {statusBusy ? "Updating..." : "Update status"}
                     </Button>

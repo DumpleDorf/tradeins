@@ -53,6 +53,12 @@ export async function GET(request: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
 
+  if (isPartnerView) {
+    return NextResponse.json(
+      vehicles.map(({ listedById: _listedById, ...vehicle }) => vehicle)
+    );
+  }
+
   return NextResponse.json(vehicles);
 }
 

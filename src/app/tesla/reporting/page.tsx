@@ -8,7 +8,7 @@ import { LoadingOverlay } from "@/components/loading-overlay";
 import { StatusBadge } from "@/components/disclaimer";
 import { VehicleImage } from "@/components/vehicle-image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatOdometer } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { formatVehiclePrice } from "@/lib/vehicle";
 
 type ReportingData = {
@@ -20,12 +20,12 @@ type ReportingData = {
     rejected: number;
     averagePrice: number;
     totalAvailableValue: number;
-    averageOdometer: number;
-    listedLast30Days: number;
+    reservedLast30Days: number;
+    soldLast30Days: number;
   };
   makeBreakdown: { make: string; count: number }[];
+  reservationsByWholesaler: { companyName: string; count: number }[];
   reservedVehicles: ReportingVehicle[];
-  soldVehicles: ReportingVehicle[];
 };
 
 type ReportingVehicle = {
@@ -46,16 +46,38 @@ type ReportingVehicle = {
   } | null;
 };
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <Card className="border-border/80 bg-card/80 backdrop-blur-sm">
+function StatCard({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string | number;
+  href?: string;
+}) {
+  const card = (
+    <Card
+      className={cn(
+        "border-border/80 bg-card/80 backdrop-blur-sm",
+        href &&
+          "transition-all duration-200 hover:-translate-y-0.5 hover:border-tesla-red/50 hover:shadow-md hover:shadow-tesla-red/10"
+      )}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-semibold tracking-tight">{value}</p>
+        {href && <p className="mt-2 text-xs text-tesla-red">View listings →</p>}
       </CardContent>
     </Card>
+  );
+
+  if (!href) return card;
+  return (
+    <Link href={href} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tesla-red/40">
+      {card}
+    </Link>
   );
 }
 
@@ -160,25 +182,67 @@ export default function TeslaReportingPage() {
       {data && (
         <div className="animate-slide-up space-y-10">
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total listings" value={data.stats.totalListings} />
-            <StatCard label="Available" value={data.stats.available} />
-            <StatCard label="Reserved" value={data.stats.reserved} />
-            <StatCard label="Sold" value={data.stats.sold} />
-            <StatCard label="Average price" value={formatVehiclePrice(data.stats.averagePrice)} />
+            <StatCard
+              label="Total listings"
+              value={data.stats.totalListings}
+              href="/tesla/listings?status=ALL"
+            />
+            <StatCard
+              label="Available"
+              value={data.stats.available}
+              href="/tesla/listings?status=AVAILABLE"
+            />
+            <StatCard
+              label="Active Reservation Requests"
+              value={data.stats.reserved}
+              href="/tesla/listings?status=RESERVED"
+            />
+            <StatCard
+              label="Sold"
+              value={data.stats.sold}
+              href="/tesla/listings?status=SOLD"
+            />
+            <StatCard
+              label="Average price of available inventory"
+              value={formatVehiclePrice(data.stats.averagePrice)}
+            />
             <StatCard
               label="Available inventory value"
               value={formatVehiclePrice(data.stats.totalAvailableValue)}
             />
             <StatCard
-              label="Average odometer"
-              value={formatOdometer(data.stats.averageOdometer)}
+              label="Reserved in last 30 days"
+              value={data.stats.reservedLast30Days}
             />
-            <StatCard label="Listed last 30 days" value={data.stats.listedLast30Days} />
+            <StatCard label="Sold in last 30 days" value={data.stats.soldLast30Days} />
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-lg font-semibold">
+              Total reservation requests by wholesaler
+            </h2>
+            {data.reservationsByWholesaler.length === 0 ? (
+              <p className="text-muted-foreground">No reservation requests yet.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {data.reservationsByWholesaler.map((row) => (
+                  <Card
+                    key={row.companyName}
+                    className="border-border/80 bg-card/80 backdrop-blur-sm"
+                  >
+                    <CardContent className="flex items-center justify-between gap-3 p-4">
+                      <span className="min-w-0 truncate font-medium">{row.companyName}</span>
+                      <span className="shrink-0 text-muted-foreground">{row.count}</span>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </section>
 
           {data.makeBreakdown.length > 0 && (
             <section>
-              <h2 className="mb-4 text-lg font-semibold">Listings by make</h2>
+              <h2 className="mb-4 text-lg font-semibold">Available listings by make</h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {data.makeBreakdown.map((row) => (
                   <Card key={row.make} className="border-border/80 bg-card/80 backdrop-blur-sm">
@@ -196,13 +260,6 @@ export default function TeslaReportingPage() {
             title="Currently reserved vehicles"
             emptyMessage="No vehicles are currently reserved."
             vehicles={data.reservedVehicles}
-            dateLabel="Reserved"
-          />
-
-          <VehiclePartnerList
-            title="Sold vehicles"
-            emptyMessage="No sold vehicles yet."
-            vehicles={data.soldVehicles ?? []}
             dateLabel="Reserved"
           />
         </div>

@@ -49,6 +49,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (session.user.role === "PARTNER") {
+      const { listedBy: _listedBy, listedById: _listedById, ...partnerSafe } = vehicle;
+      return NextResponse.json(partnerSafe);
+    }
+
     return NextResponse.json(vehicle);
   } catch (error) {
     console.error("Vehicle fetch failed:", error);

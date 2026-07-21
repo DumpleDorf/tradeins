@@ -4,15 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
 import { PageHeader } from "@/components/page-header";
-import { Disclaimer } from "@/components/disclaimer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ReservationRequestsBadge } from "@/components/reservation-requests-badge";
 
-const links = [
+const links: {
+  href: string;
+  title: string;
+  desc: string;
+  showReservationBadge?: boolean;
+}[] = [
   { href: "/tesla/listings", title: "Listings", desc: "Create and manage vehicle listings" },
   {
     href: "/tesla/reservations",
-    title: "Reservations",
+    title: "Reserved / Sold",
     desc: "Review reservation requests and sold vehicles",
+    showReservationBadge: true,
   },
   { href: "/tesla/reporting", title: "Reporting", desc: "Inventory stats and reserved vehicle overview" },
   { href: "/tesla/partners", title: "Wholesalers", desc: "Invite and manage wholesaler accounts" },
@@ -46,10 +52,6 @@ export default function TeslaDashboardPage() {
         description="Manage trade-in wholesale inventory"
         showBack={false}
       />
-
-      <div className="animate-slide-up">
-        <Disclaimer variant="listing" />
-      </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <Link
@@ -104,7 +106,10 @@ export default function TeslaDashboardPage() {
           >
             <Card className="h-full border-border/80 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-tesla-red/50 hover:shadow-lg hover:shadow-tesla-red/10">
               <CardHeader>
-                <CardTitle>{link.title}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  {link.title}
+                  {link.showReservationBadge ? <ReservationRequestsBadge /> : null}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{link.desc}</p>

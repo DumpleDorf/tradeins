@@ -50,6 +50,22 @@ type VehicleBrowseProps = {
   showStatusFilter?: boolean;
 };
 
+function statusFromSearchParams(search: string): InventoryFilterValues["status"] {
+  const value = new URLSearchParams(search).get("status");
+  if (!value || value === "ALL") return "";
+  if (value === "AVAILABLE" || value === "RESERVED" || value === "SOLD") return value;
+  return "";
+}
+
+function createFiltersFromUrl(meta: InventoryMeta): InventoryFilterValues {
+  const defaults = createDefaultFilters(meta);
+  if (typeof window === "undefined") return defaults;
+  return {
+    ...defaults,
+    status: statusFromSearchParams(window.location.search),
+  };
+}
+
 export function VehicleBrowse({
   apiEndpoint,
   storageKey,
@@ -76,11 +92,11 @@ export function VehicleBrowse({
   const [viewMode, setViewMode] = useState<VehicleBrowseViewMode>("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const [draftFilters, setDraftFilters] = useState<InventoryFilterValues>(
-    createDefaultFilters(DEFAULT_VEHICLE_BROWSE_META)
+  const [draftFilters, setDraftFilters] = useState<InventoryFilterValues>(() =>
+    createFiltersFromUrl(DEFAULT_VEHICLE_BROWSE_META)
   );
-  const [appliedFilters, setAppliedFilters] = useState<InventoryFilterValues>(
-    createDefaultFilters(DEFAULT_VEHICLE_BROWSE_META)
+  const [appliedFilters, setAppliedFilters] = useState<InventoryFilterValues>(() =>
+    createFiltersFromUrl(DEFAULT_VEHICLE_BROWSE_META)
   );
 
   const metaRef = useRef(meta);
@@ -132,22 +148,34 @@ export function VehicleBrowse({
         if (!metaReadyRef.current) {
           metaReadyRef.current = true;
           const defaults = createDefaultFilters(data.meta);
-          setDraftFilters(defaults);
+          // Preserve URL / user-selected discrete filters; only refresh range bounds from meta.
+          const mergeWithMetaBounds = (current: InventoryFilterValues): InventoryFilterValues => ({
+            ...defaults,
+            make: current.make,
+            model: current.model,
+            vehicleDamage: current.vehicleDamage,
+            serviceHistory: current.serviceHistory,
+            pricing: current.pricing,
+            state: current.state,
+            status: current.status,
+          });
+          setDraftFilters((current) => mergeWithMetaBounds(current));
           // Avoid an extra dependency-driven refetch loop on first meta hydrate.
           setAppliedFilters((current) => {
+            const next = mergeWithMetaBounds(current);
             const same =
-              current.make === defaults.make &&
-              current.model === defaults.model &&
-              current.vehicleDamage === defaults.vehicleDamage &&
-              current.serviceHistory === defaults.serviceHistory &&
-              current.pricing === defaults.pricing &&
-              current.state === defaults.state &&
-              current.status === defaults.status &&
-              current.yearRange[0] === defaults.yearRange[0] &&
-              current.yearRange[1] === defaults.yearRange[1] &&
-              current.odometerRange[0] === defaults.odometerRange[0] &&
-              current.odometerRange[1] === defaults.odometerRange[1];
-            return same ? current : defaults;
+              current.make === next.make &&
+              current.model === next.model &&
+              current.vehicleDamage === next.vehicleDamage &&
+              current.serviceHistory === next.serviceHistory &&
+              current.pricing === next.pricing &&
+              current.state === next.state &&
+              current.status === next.status &&
+              current.yearRange[0] === next.yearRange[0] &&
+              current.yearRange[1] === next.yearRange[1] &&
+              current.odometerRange[0] === next.odometerRange[0] &&
+              current.odometerRange[1] === next.odometerRange[1];
+            return same ? current : next;
           });
         }
       }

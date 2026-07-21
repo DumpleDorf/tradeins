@@ -8,6 +8,8 @@ type VehicleDetailContentProps = {
     status?: string;
     listedBy?: { name: string };
   };
+  /** When true, show lister name (Tesla staff). Partners should omit this. */
+  showListedBy?: boolean;
   statusBadge?: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -16,6 +18,7 @@ type VehicleDetailContentProps = {
 
 export function VehicleDetailContent({
   vehicle,
+  showListedBy = false,
   statusBadge,
   subtitle,
   actions,
@@ -41,7 +44,7 @@ export function VehicleDetailContent({
             <p className="text-lg font-medium text-muted-foreground sm:text-xl">Unpriced</p>
           )}
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-          {vehicle.listedBy && (
+          {showListedBy && vehicle.listedBy && (
             <p className="text-sm text-muted-foreground">Listed by {vehicle.listedBy.name}</p>
           )}
         </div>

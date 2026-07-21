@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
-import { Disclaimer } from "@/components/disclaimer";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import {
   ListingPhotoUpload,
@@ -69,7 +68,6 @@ export default function NewListingPage() {
       <div className="mx-auto max-w-2xl">
         <BackLink href="/tesla/listings" label="Back to listings" />
         <h1 className="mt-4 text-center text-3xl font-semibold">New Vehicle Listing</h1>
-        <Disclaimer variant="listing" />
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <RequiredFieldsHint />
