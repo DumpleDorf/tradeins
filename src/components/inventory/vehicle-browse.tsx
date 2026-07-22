@@ -24,6 +24,7 @@ import {
   type VehicleBrowseSort,
   type VehicleBrowseViewMode,
 } from "@/lib/vehicle-browse";
+import { getBrowseReturnPath, withBrowseReturn } from "@/lib/browse-return";
 import { cn } from "@/lib/utils";
 
 type BrowseVehicle = {
@@ -279,6 +280,10 @@ export function VehicleBrowse({
 
   const searchPending = searchInput.trim() !== search.trim();
 
+  const browseReturnPath = getBrowseReturnPath(pathname, searchParams);
+  const vehicleHref = (vehicleId: string) =>
+    withBrowseReturn(`${vehicleBasePath}${vehicleId}`, browseReturnPath);
+
   return (
     <>
       <LoadingOverlay show={initialLoading} label={loadingLabel} />
@@ -414,7 +419,7 @@ export function VehicleBrowse({
               <VehicleCard
                 key={vehicle.id}
                 vehicle={vehicle}
-                href={`${vehicleBasePath}${vehicle.id}`}
+                href={vehicleHref(vehicle.id)}
                 showStatus={showStatus}
               />
             ))}
@@ -425,7 +430,7 @@ export function VehicleBrowse({
               <VehicleListItem
                 key={vehicle.id}
                 vehicle={vehicle}
-                href={`${vehicleBasePath}${vehicle.id}`}
+                href={vehicleHref(vehicle.id)}
                 showStatus={showStatus}
               />
             ))}

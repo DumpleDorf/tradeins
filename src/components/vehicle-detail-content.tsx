@@ -1,6 +1,12 @@
 import { PhotoGallery } from "@/components/photo-gallery";
 import { StatusBadge } from "@/components/disclaimer";
-import { getVehicleDetailRows, formatVehiclePrice, type VehicleDetails } from "@/lib/vehicle";
+import { formatOdometer } from "@/lib/utils";
+import {
+  formatVehicleLocation,
+  formatVehiclePrice,
+  getVehicleDetailRows,
+  type VehicleDetails,
+} from "@/lib/vehicle";
 
 type VehicleDetailContentProps = {
   vehicle: VehicleDetails & {
@@ -13,6 +19,8 @@ type VehicleDetailContentProps = {
   statusBadge?: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  /** Primary CTA shown under the title / key facts, above vehicle details. */
+  cta?: React.ReactNode;
   sidebar?: React.ReactNode;
 };
 
@@ -22,27 +30,44 @@ export function VehicleDetailContent({
   statusBadge,
   subtitle,
   actions,
+  cta,
   sidebar,
 }: VehicleDetailContentProps) {
   const badgeStatus = statusBadge ?? vehicle.status;
+  const location = formatVehicleLocation(vehicle.site, vehicle.state);
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
+      <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               {vehicle.year} {vehicle.make} {vehicle.model}
             </h1>
             {badgeStatus && <StatusBadge status={badgeStatus} />}
           </div>
-          {vehicle.price > 0 ? (
-            <p className="text-2xl font-semibold text-tesla-red sm:text-3xl">
-              {formatVehiclePrice(vehicle.price)}
+          {vehicle.trim ? (
+            <p className="text-base text-muted-foreground sm:text-lg">{vehicle.trim}</p>
+          ) : null}
+
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
+            {vehicle.price > 0 ? (
+              <p className="text-2xl font-semibold text-tesla-red sm:text-3xl">
+                {formatVehiclePrice(vehicle.price)}
+              </p>
+            ) : (
+              <p className="text-lg font-medium text-muted-foreground sm:text-xl">Unpriced</p>
+            )}
+            <p className="text-sm text-muted-foreground sm:text-base">
+              <span className="text-foreground/90">{formatOdometer(vehicle.odometer)}</span>
             </p>
-          ) : (
-            <p className="text-lg font-medium text-muted-foreground sm:text-xl">Unpriced</p>
-          )}
+            {location !== "—" ? (
+              <p className="text-sm text-muted-foreground sm:text-base">
+                <span className="text-foreground/90">{location}</span>
+              </p>
+            ) : null}
+          </div>
+
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
           {showListedBy && vehicle.listedBy && (
             <p className="text-sm text-muted-foreground">Listed by {vehicle.listedBy.name}</p>
@@ -50,6 +75,8 @@ export function VehicleDetailContent({
         </div>
         {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
       </div>
+
+      {cta && <div className="mb-6 sm:mb-8">{cta}</div>}
 
       <div className="grid gap-8 lg:grid-cols-5">
         <div className="lg:col-span-3">

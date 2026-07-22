@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "@/components/page-shell";
 import { VehicleDetailContent } from "@/components/vehicle-detail-content";
 import {
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formatApiError } from "@/lib/api-errors";
 import { formatAuditActorLine, resolveWholesalerCompany } from "@/lib/audit-display";
+import { resolveBrowseReturn } from "@/lib/browse-return";
 import { validateVehiclePhotoFiles } from "@/lib/vehicle-photos";
 import { type VehicleDetails } from "@/lib/vehicle";
 import { cn } from "@/lib/utils";
@@ -80,6 +81,8 @@ function formatAuditAction(action: string) {
 export default function TeslaListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const listingsHref = resolveBrowseReturn(searchParams.get("from"), "/tesla/listings");
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -302,7 +305,7 @@ export default function TeslaListingDetailPage() {
       <PageShell>
         <main className="mx-auto max-w-3xl py-16 text-center">
           <p>Listing not found.</p>
-          <BackLink href="/tesla/listings" label="Back to listings" className="mt-4" />
+          <BackLink href={listingsHref} label="Back to listings" className="mt-4" />
         </main>
       </PageShell>
     );
@@ -323,7 +326,7 @@ export default function TeslaListingDetailPage() {
         }
       />
 
-      <BackLink href="/tesla/listings" label="Back to listings" />
+      <BackLink href={listingsHref} label="Back to listings" />
 
       <div className={cn("mt-6", editing && "mx-auto max-w-2xl")}>
         {photoWarning && (
