@@ -45,11 +45,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (session.user.role === "PARTNER" && vehicle.status !== "AVAILABLE") {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
     if (session.user.role === "PARTNER") {
+      const isAvailable = vehicle.status === "AVAILABLE";
+      const ownsActiveListing = vehicle.reservations.some(
+        (r) =>
+          r.partnerId === session.user.id &&
+          r.status === "APPROVED" &&
+          (vehicle.status === "RESERVED" || vehicle.status === "SOLD")
+      );
+
+      if (!isAvailable && !ownsActiveListing) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+
       const { listedBy: _listedBy, listedById: _listedById, ...partnerSafe } = vehicle;
       return NextResponse.json(partnerSafe);
     }

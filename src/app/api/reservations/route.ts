@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ReservationStatus, VehicleStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -16,8 +17,22 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // My Reservations: active reserved, sold, and cancelled history.
+  // Exclude stale APPROVED+AVAILABLE (not a live reservation) and other odd states.
+  const statusFilter = {
+    OR: [
+      { status: ReservationStatus.CANCELLED },
+      {
+        status: ReservationStatus.APPROVED,
+        vehicle: { status: { in: [VehicleStatus.RESERVED, VehicleStatus.SOLD] } },
+      },
+    ],
+  };
+
   const reservations = await prisma.reservation.findMany({
-    where: isPartner ? { partnerId: session.user.id } : undefined,
+    where: isPartner
+      ? { partnerId: session.user.id, ...statusFilter }
+      : statusFilter,
     include: {
       vehicle: {
         include: { photos: { orderBy: { sortOrder: "asc" }, take: 1 } },

@@ -158,8 +158,8 @@ body {
   }
 
   .post-login-entrance {
-    background: rgba(10, 11, 15, 0.72);
-    backdrop-filter: blur(8px);
+    background: rgba(10, 11, 15, 0.88);
+    backdrop-filter: blur(10px);
     animation: postLoginBackdropIn 0.35s ease-out both;
   }
 
@@ -168,14 +168,15 @@ body {
   }
 
   .post-login-entrance-logo {
-    font-size: 1.875rem;
-    column-gap: 0.5rem;
+    font-size: 2.5rem;
+    column-gap: 0.625rem;
+    color: #f5f5f5;
     animation: postLoginLogoSettle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .post-login-entrance-word {
-    height: 2rem;
-    line-height: 2rem;
+    height: 2.75rem;
+    line-height: 2.75rem;
   }
 
   .post-login-entrance-subtitle {

@@ -105,15 +105,19 @@ export default function ReservationsPage() {
               const canRelease = r.status === "APPROVED" && r.vehicle.status === "RESERVED";
               const badgeStatus =
                 r.status === "CANCELLED" ? "CANCELLED" : r.vehicle.status;
+              const vehicleHref = `/vehicles/${r.vehicle.id}?from=reservations`;
 
               return (
                 <div
                   key={r.id}
                   className="flex flex-col gap-4 rounded-sm border border-border/80 bg-card/80 p-4 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <Link
+                    href={vehicleHref}
+                    className="min-w-0 flex-1 rounded-sm outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-tesla-red"
+                  >
                     <div className="flex items-center gap-3">
-                      <h3 className="font-semibold">
+                      <h3 className="font-semibold hover:underline">
                         {r.vehicle.year} {r.vehicle.make} {r.vehicle.model}
                       </h3>
                       <StatusBadge status={badgeStatus} />
@@ -125,7 +129,7 @@ export default function ReservationsPage() {
                     {r.notes && (
                       <p className="mt-2 text-sm text-muted-foreground">Notes: {r.notes}</p>
                     )}
-                  </div>
+                  </Link>
                   <div className="flex flex-wrap gap-2">
                     {canRelease && (
                       <Button
@@ -139,7 +143,7 @@ export default function ReservationsPage() {
                         Release
                       </Button>
                     )}
-                    <Link href={`/reservations/${r.id}`}>
+                    <Link href={vehicleHref}>
                       <Button variant="outline" size="sm">
                         View details
                       </Button>
