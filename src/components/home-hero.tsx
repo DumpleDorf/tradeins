@@ -44,11 +44,20 @@ export function HomeHero() {
             <LoadingSpinner size="sm" />
             <p className="hero-text-shadow text-sm text-white/70">Loading...</p>
           </div>
-        ) : showLogin && !isLoggedIn ? (
-          <LoginForm
-            variant="hero"
-            onCancel={() => setShowLogin(false)}
-          />
+        ) : showLogin ? (
+          // Keep the sign-in surface mounted through session update so the marketing
+          // homepage never flashes before the role dashboard navigation completes.
+          isLoggedIn ? (
+            <div className="flex flex-col items-center gap-3">
+              <LoadingSpinner size="sm" />
+              <p className="hero-text-shadow text-sm text-white/70">Signing you in...</p>
+            </div>
+          ) : (
+            <LoginForm
+              variant="hero"
+              onCancel={() => setShowLogin(false)}
+            />
+          )
         ) : (
           <>
             <p className="hero-text-shadow mb-4 text-sm uppercase tracking-[0.2em] text-tesla-red">

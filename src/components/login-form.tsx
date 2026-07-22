@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getDashboardPath } from "@/lib/rbac";
+import type { UserRole } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { ForgotPasswordInstructions } from "@/components/forgot-password-instructions";
 import { markPostLoginEntrance } from "@/components/post-login-entrance";
@@ -18,6 +19,24 @@ type LoginFormProps = {
   variant?: "default" | "hero";
   onCancel?: () => void;
 };
+
+/** Prefer role dashboard; never land on marketing home or auth pages after login. */
+function resolvePostLoginPath(role: UserRole, callbackUrl: string | null) {
+  const dashboard = getDashboardPath(role);
+  if (
+    !callbackUrl ||
+    !callbackUrl.startsWith("/") ||
+    callbackUrl.startsWith("//") ||
+    callbackUrl === "/" ||
+    callbackUrl.startsWith("/?") ||
+    callbackUrl.startsWith("/login") ||
+    callbackUrl.startsWith("/forgot-password") ||
+    callbackUrl.startsWith("/reset-password")
+  ) {
+    return dashboard;
+  }
+  return callbackUrl;
+}
 
 export function LoginForm({
   title = "Sign In",
@@ -68,15 +87,14 @@ export function LoginForm({
       return;
     }
 
-    const callbackUrl = searchParams.get("callbackUrl");
-    const safeCallback =
-      callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
-        ? callbackUrl
-        : getDashboardPath(role);
+    const destination = resolvePostLoginPath(role, searchParams.get("callbackUrl"));
 
+    // Cover the transition first, then replace so `/` never paints as a landing page.
     markPostLoginEntrance();
-    router.push(safeCallback);
-    router.refresh();
+    requestAnimationFrame(() => {
+      router.replace(destination);
+      router.refresh();
+    });
   }
 
   return (

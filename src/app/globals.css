@@ -158,20 +158,21 @@ body {
   }
 
   .post-login-entrance {
-    background: rgba(10, 11, 15, 0.88);
-    backdrop-filter: blur(10px);
-    animation: postLoginBackdropIn 0.35s ease-out both;
+    /* Solid cover from the first paint so the prior page never flashes through. */
+    background: rgba(10, 11, 15, 0.96);
+    backdrop-filter: blur(12px);
+    animation: postLoginBackdropIn 0.2s ease-out both;
   }
 
   .post-login-entrance--exit {
-    animation: postLoginBackdropOut 0.45s ease-in both;
+    animation: postLoginBackdropOut 0.65s ease-in both;
   }
 
   .post-login-entrance-logo {
     font-size: 2.5rem;
     column-gap: 0.625rem;
     color: #f5f5f5;
-    animation: postLoginLogoSettle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: postLoginLogoSettle 1s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .post-login-entrance-word {
@@ -180,14 +181,14 @@ body {
   }
 
   .post-login-entrance-subtitle {
-    animation: postLoginFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+    animation: postLoginFadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
   }
 
   .post-login-entrance--exit .post-login-entrance-logo,
   .post-login-entrance--exit .post-login-entrance-subtitle {
     animation: none;
     opacity: 0;
-    transition: opacity 0.35s ease-in;
+    transition: opacity 0.5s ease-in;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -295,7 +296,7 @@ body {
 
 @keyframes postLoginBackdropIn {
   from {
-    opacity: 0;
+    opacity: 0.92;
   }
   to {
     opacity: 1;

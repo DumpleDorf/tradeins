@@ -34,7 +34,7 @@ type Phase = "idle" | "enter" | "exit";
  * Triggered once via sessionStorage + custom event from LoginForm after successful auth.
  *
  * Providers stay mounted across client navigations, so a mount-only sessionStorage
- * read never sees the flag set just before router.push. The custom event starts the
+ * read never sees the flag set just before router.replace. The custom event starts the
  * entrance immediately; the mount check covers hard navigations / full reloads.
  */
 export function PostLoginEntrance() {
@@ -54,9 +54,9 @@ export function PostLoginEntrance() {
       const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       setPhase("enter");
 
-      // Reduced motion: brief static welcome. Full motion: ~1.6s.
-      const exitMs = reduced ? 400 : 1100;
-      const doneMs = reduced ? 700 : 1600;
+      // Reduced motion: brief static welcome. Full motion: ~2.4s.
+      const exitMs = reduced ? 450 : 1700;
+      const doneMs = reduced ? 750 : 2400;
 
       exitTimer = window.setTimeout(() => setPhase("exit"), exitMs);
       doneTimer = window.setTimeout(() => {
