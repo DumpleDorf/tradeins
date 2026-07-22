@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { LoadingOverlay } from "@/components/loading-overlay";
 import { VehicleCard } from "@/components/vehicle-card";
@@ -18,6 +18,8 @@ import {
 import {
   DEFAULT_VEHICLE_BROWSE_META,
   VEHICLE_BROWSE_SORT_OPTIONS,
+  parseBrowsePageParam,
+  parseBrowseSortParam,
   vehicleBrowseFiltersToParams,
   type VehicleBrowseSort,
   type VehicleBrowseViewMode,
@@ -68,21 +70,24 @@ export function VehicleBrowse({
   showStatus = false,
   showStatusFilter = false,
 }: VehicleBrowseProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const page = parseBrowsePageParam(searchParams.get("page"));
+  const sort = parseBrowseSortParam(searchParams.get("sort"));
   const urlStatus = parseStatusParam(searchParams.get("status"));
 
   const [vehicles, setVehicles] = useState<BrowseVehicle[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [meta, setMeta] = useState<InventoryMeta>(DEFAULT_VEHICLE_BROWSE_META);
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<VehicleBrowseSort>("newest");
   const [viewMode, setViewMode] = useState<VehicleBrowseViewMode>("list");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -100,6 +105,38 @@ export function VehicleBrowse({
   const hasLoadedRef = useRef(false);
   const metaReadyRef = useRef(false);
 
+  const replaceBrowseParams = useCallback(
+    (updates: {
+      page?: number;
+      sort?: VehicleBrowseSort;
+      status?: InventoryFilterValues["status"];
+    }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const nextPage = updates.page ?? page;
+      const nextSort = updates.sort ?? sort;
+      const nextStatus = updates.status !== undefined ? updates.status : urlStatus;
+
+      if (nextPage > 1) params.set("page", String(nextPage));
+      else params.delete("page");
+
+      if (nextSort !== "newest") params.set("sort", nextSort);
+      else params.delete("sort");
+
+      if (nextStatus) params.set("status", nextStatus);
+      else params.delete("status");
+
+      const qs = params.toString();
+      const nextUrl = qs ? `${pathname}?${qs}` : pathname;
+      const currentUrl = searchParams.toString()
+        ? `${pathname}?${searchParams.toString()}`
+        : pathname;
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl, { scroll: false });
+      }
+    },
+    [page, pathname, router, searchParams, sort, urlStatus]
+  );
+
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
     if (stored === "grid" || stored === "list") setViewMode(stored);
@@ -111,7 +148,6 @@ export function VehicleBrowse({
 
   // Keep filters in sync when landing via reporting / dashboard status links.
   useEffect(() => {
-    setPage(1);
     setDraftFilters((current) =>
       current.status === urlStatus ? current : { ...current, status: urlStatus }
     );
@@ -162,7 +198,6 @@ export function VehicleBrowse({
             model: current.model,
             vehicleDamage: current.vehicleDamage,
             serviceHistory: current.serviceHistory,
-            pricing: current.pricing,
             state: current.state,
             status: current.status,
           });
@@ -175,7 +210,6 @@ export function VehicleBrowse({
               current.model === next.model &&
               current.vehicleDamage === next.vehicleDamage &&
               current.serviceHistory === next.serviceHistory &&
-              current.pricing === next.pricing &&
               current.state === next.state &&
               current.status === next.status &&
               current.yearRange[0] === next.yearRange[0] &&
@@ -212,7 +246,7 @@ export function VehicleBrowse({
   );
 
   function applySearch() {
-    setPage(1);
+    replaceBrowseParams({ page: 1 });
     setSearch(searchInput.trim());
   }
 
@@ -224,8 +258,8 @@ export function VehicleBrowse({
   }
 
   function applyFilters() {
-    setPage(1);
     setAppliedFilters(draftFilters);
+    replaceBrowseParams({ page: 1, status: draftFilters.status });
     setFiltersOpen(false);
   }
 
@@ -233,14 +267,13 @@ export function VehicleBrowse({
     const defaults = createDefaultFilters(meta);
     setDraftFilters(defaults);
     setAppliedFilters(defaults);
-    setPage(1);
+    replaceBrowseParams({ page: 1, status: "" });
     setFiltersOpen(false);
   }
 
   function clearSearchAndFilters() {
     setSearchInput("");
     setSearch("");
-    setPage(1);
     clearFilters();
   }
 
@@ -310,8 +343,10 @@ export function VehicleBrowse({
                 className="h-10 rounded-sm border border-border/80 bg-card/80 px-3 text-sm backdrop-blur-sm"
                 value={sort}
                 onChange={(e) => {
-                  setSort(e.target.value as VehicleBrowseSort);
-                  setPage(1);
+                  replaceBrowseParams({
+                    page: 1,
+                    sort: e.target.value as VehicleBrowseSort,
+                  });
                 }}
               >
                 {VEHICLE_BROWSE_SORT_OPTIONS.map((option) => (
@@ -403,7 +438,7 @@ export function VehicleBrowse({
               variant="outline"
               className="border-border/80 bg-card/80 backdrop-blur-sm"
               disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={() => replaceBrowseParams({ page: page - 1 })}
             >
               Previous
             </Button>
@@ -414,7 +449,7 @@ export function VehicleBrowse({
               variant="outline"
               className="border-border/80 bg-card/80 backdrop-blur-sm"
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => replaceBrowseParams({ page: page + 1 })}
             >
               Next
             </Button>

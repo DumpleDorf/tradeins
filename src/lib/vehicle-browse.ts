@@ -12,6 +12,30 @@ export type VehicleBrowseSort =
 
 export type VehicleBrowseViewMode = "grid" | "list";
 
+const VEHICLE_BROWSE_SORT_VALUES: VehicleBrowseSort[] = [
+  "newest",
+  "oldest",
+  "year_desc",
+  "year_asc",
+  "odometer_asc",
+  "odometer_desc",
+  "price_asc",
+  "price_desc",
+];
+
+export function parseBrowsePageParam(value: string | null): number {
+  const page = Number(value);
+  if (!Number.isInteger(page) || page < 1) return 1;
+  return page;
+}
+
+export function parseBrowseSortParam(value: string | null): VehicleBrowseSort {
+  if (value && VEHICLE_BROWSE_SORT_VALUES.includes(value as VehicleBrowseSort)) {
+    return value as VehicleBrowseSort;
+  }
+  return "newest";
+}
+
 export const VEHICLE_BROWSE_SORT_OPTIONS: { value: VehicleBrowseSort; label: string }[] = [
   { value: "newest", label: "Newest listed" },
   { value: "oldest", label: "Oldest listed" },
@@ -47,7 +71,6 @@ export function vehicleBrowseFiltersToParams(
   if (filters.model) params.set("model", filters.model);
   if (filters.vehicleDamage) params.set("vehicleDamage", filters.vehicleDamage);
   if (filters.serviceHistory) params.set("serviceHistory", filters.serviceHistory);
-  if (filters.pricing) params.set("pricing", filters.pricing);
   if (filters.state) params.set("state", filters.state);
   if (filters.status) params.set("status", filters.status);
   if (filters.yearRange[0] > meta.yearMin) params.set("yearMin", String(filters.yearRange[0]));

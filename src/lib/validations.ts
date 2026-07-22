@@ -93,7 +93,6 @@ export const inventoryFiltersSchema = z.object({
       "No Service History",
     ])
     .optional(),
-  pricing: z.enum(["priced", "unpriced"]).optional(),
   state: z.string().optional(),
   status: z.preprocess(
     (value) => (value === "" || value === "ALL" || value === null ? undefined : value),

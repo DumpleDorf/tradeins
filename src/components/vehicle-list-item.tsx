@@ -31,14 +31,14 @@ export function VehicleListItem({ vehicle, href, showStatus }: VehicleListItemPr
       href={href}
       className="group flex animate-stagger-in gap-4 overflow-hidden rounded-sm border border-border/80 bg-card/80 p-3 backdrop-blur-sm transition-all duration-300 hover:border-tesla-red/50 hover:shadow-lg hover:shadow-tesla-red/10 sm:gap-5 sm:p-4"
     >
-      <div className="relative h-24 w-32 shrink-0 overflow-hidden rounded-sm bg-muted sm:h-28 sm:w-40">
+      <div className="relative h-32 w-44 shrink-0 overflow-hidden rounded-sm bg-muted sm:h-40 sm:w-56">
         {imageUrl ? (
           <VehicleImage
             src={imageUrl}
             alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="160px"
+            sizes="(max-width: 640px) 176px, 224px"
             loading="lazy"
           />
         ) : (

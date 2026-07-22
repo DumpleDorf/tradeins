@@ -16,7 +16,6 @@ export type InventoryFilterValues = {
   odometerRange: [number, number];
   vehicleDamage: "" | "Yes" | "No";
   serviceHistory: "" | (typeof SERVICE_HISTORY_OPTIONS)[number];
-  pricing: "" | "priced" | "unpriced";
   state: string;
   status: "" | "AVAILABLE" | "RESERVED" | "SOLD";
 };
@@ -57,7 +56,6 @@ export function countActiveInventoryFilters(
   }
   if (filters.vehicleDamage) count++;
   if (filters.serviceHistory) count++;
-  if (filters.pricing) count++;
   if (filters.state) count++;
   if (filters.status) count++;
   return count;
@@ -71,7 +69,6 @@ export function createDefaultFilters(meta: InventoryMeta): InventoryFilterValues
     odometerRange: [meta.odometerMin, meta.odometerMax],
     vehicleDamage: "",
     serviceHistory: "",
-    pricing: "",
     state: "",
     status: "",
   };
@@ -229,25 +226,6 @@ export function InventoryFiltersPanel({
                       {state}
                     </option>
                   ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="filter-pricing">Pricing</Label>
-                <select
-                  id="filter-pricing"
-                  className="flex h-10 w-full rounded-sm border border-border bg-background/80 px-3 text-sm"
-                  value={draft.pricing}
-                  onChange={(e) =>
-                    onDraftChange({
-                      ...draft,
-                      pricing: e.target.value as InventoryFilterValues["pricing"],
-                    })
-                  }
-                >
-                  <option value="">Any</option>
-                  <option value="priced">Priced</option>
-                  <option value="unpriced">Unpriced</option>
                 </select>
               </div>
 

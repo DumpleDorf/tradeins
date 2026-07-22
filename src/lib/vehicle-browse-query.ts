@@ -43,12 +43,6 @@ export function buildVehicleBrowseWhere(
   if (filters.state) where.state = filters.state;
   if (filters.status) where.status = filters.status;
 
-  if (filters.pricing === "priced") {
-    where.price = { gt: 0 };
-  } else if (filters.pricing === "unpriced") {
-    where.price = { lte: 0 };
-  }
-
   if (filters.yearMin !== undefined || filters.yearMax !== undefined) {
     where.year = {};
     if (filters.yearMin !== undefined) where.year.gte = filters.yearMin;
