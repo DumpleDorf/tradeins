@@ -1,15 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VehicleImage } from "@/components/vehicle-image";
+
+/** Matches `Header` inner height (`h-16`). Overlay starts below so the navbar stays sharp. */
+const NAVBAR_OFFSET_CLASS = "top-16";
 
 type Photo = { url: string };
 
 export function PhotoGallery({ photos }: { photos: Photo[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [portalReady, setPortalReady] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const thumbnailsRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +31,10 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
 
   const goPrev = useCallback(() => goTo(activeIndex - 1), [activeIndex, goTo]);
   const goNext = useCallback(() => goTo(activeIndex + 1), [activeIndex, goTo]);
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -80,6 +89,111 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
       </div>
     );
   }
+
+  const lightbox =
+    lightboxOpen && portalReady
+      ? createPortal(
+          <div
+            className={cn(
+              "fixed inset-x-0 bottom-0 z-[210] flex items-center justify-center p-3 sm:p-6",
+              NAVBAR_OFFSET_CLASS
+            )}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Photo viewer"
+          >
+            {/* Dim + blur page content under the navbar only */}
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              aria-label="Close photo viewer"
+              onClick={() => setLightboxOpen(false)}
+            />
+
+            <div
+              className="relative z-10 flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-sm border border-border/80 bg-card shadow-2xl"
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/80 bg-card px-3 py-2.5 sm:px-4">
+                <p className="text-sm font-medium text-foreground">
+                  {activeIndex + 1} / {count}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(false)}
+                  className="rounded-sm border border-border/80 bg-muted/60 p-2 text-foreground transition-colors hover:bg-muted"
+                  aria-label="Close photo viewer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black/40 px-12 py-4 sm:px-16 sm:py-6">
+                {count > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goPrev}
+                      className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-sm border border-border/60 bg-card/90 p-2 text-foreground transition-colors hover:bg-card sm:left-3"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-sm border border-border/60 bg-card/90 p-2 text-foreground transition-colors hover:bg-card sm:right-3"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
+
+                <div className="relative h-[min(62vh,32rem)] w-full sm:h-[min(68vh,36rem)]">
+                  <VehicleImage
+                    src={active.url}
+                    alt={`Vehicle photo ${activeIndex + 1} of ${count}`}
+                    fill
+                    className="object-contain"
+                    sizes="100vw"
+                    priority
+                  />
+                </div>
+              </div>
+
+              {count > 1 && (
+                <div className="filter-panel-scroll flex shrink-0 justify-center gap-2 overflow-x-auto border-t border-border/80 bg-card px-3 py-3 sm:px-4">
+                  {photos.map((photo, index) => (
+                    <button
+                      key={`lb-${photo.url}-${index}`}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={cn(
+                        "relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded-sm border-2 transition-all sm:h-14 sm:w-20",
+                        index === activeIndex
+                          ? "border-tesla-red opacity-100"
+                          : "border-transparent opacity-50 hover:opacity-90"
+                      )}
+                    >
+                      <VehicleImage
+                        src={photo.url}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className="space-y-3">
@@ -177,90 +291,7 @@ export function PhotoGallery({ photos }: { photos: Photo[] }) {
         </div>
       )}
 
-      {lightboxOpen && (
-        <div
-          className="fixed inset-0 z-[220] flex flex-col bg-black/92 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Photo viewer"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <p className="text-sm font-medium text-white/90">
-              {activeIndex + 1} / {count}
-            </p>
-            <button
-              type="button"
-              onClick={() => setLightboxOpen(false)}
-              className="rounded-sm border border-white/20 bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
-              aria-label="Close photo viewer"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-4 sm:px-16">
-            {count > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={goPrev}
-                  className="absolute left-2 z-10 rounded-sm border border-white/20 bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20 sm:left-4"
-                  aria-label="Previous photo"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
-                  type="button"
-                  onClick={goNext}
-                  className="absolute right-2 z-10 rounded-sm border border-white/20 bg-white/10 p-2.5 text-white transition-colors hover:bg-white/20 sm:right-4"
-                  aria-label="Next photo"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-              </>
-            )}
-
-            <div className="relative h-full w-full max-w-6xl">
-              <VehicleImage
-                src={active.url}
-                alt={`Vehicle photo ${activeIndex + 1} of ${count}`}
-                fill
-                className="object-contain"
-                sizes="100vw"
-                priority
-              />
-            </div>
-          </div>
-
-          {count > 1 && (
-            <div className="filter-panel-scroll flex justify-center gap-2 overflow-x-auto px-4 pb-5 pt-1">
-              {photos.map((photo, index) => (
-                <button
-                  key={`lb-${photo.url}-${index}`}
-                  type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className={cn(
-                    "relative h-14 w-20 shrink-0 overflow-hidden rounded-sm border-2 transition-all",
-                    index === activeIndex
-                      ? "border-tesla-red opacity-100"
-                      : "border-transparent opacity-50 hover:opacity-90"
-                  )}
-                >
-                  <VehicleImage
-                    src={photo.url}
-                    alt=""
-                    fill
-                    className="object-cover"
-                    sizes="80px"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {lightbox}
     </div>
   );
 }
