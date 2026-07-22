@@ -32,6 +32,7 @@ enum ReservationStatus {
   PENDING_APPROVAL
   APPROVED
   REJECTED
+  CANCELLED
 }
 
 model User {

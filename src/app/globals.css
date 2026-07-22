@@ -157,6 +157,38 @@ body {
     color: #e31937;
   }
 
+  .post-login-entrance {
+    background: rgba(10, 11, 15, 0.72);
+    backdrop-filter: blur(8px);
+    animation: postLoginBackdropIn 0.35s ease-out both;
+  }
+
+  .post-login-entrance--exit {
+    animation: postLoginBackdropOut 0.45s ease-in both;
+  }
+
+  .post-login-entrance-logo {
+    font-size: 1.875rem;
+    column-gap: 0.5rem;
+    animation: postLoginLogoSettle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .post-login-entrance-word {
+    height: 2rem;
+    line-height: 2rem;
+  }
+
+  .post-login-entrance-subtitle {
+    animation: postLoginFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+  }
+
+  .post-login-entrance--exit .post-login-entrance-logo,
+  .post-login-entrance--exit .post-login-entrance-subtitle {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.35s ease-in;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .app-bg-topo-layer-a,
     .app-bg-topo-layer-b {
@@ -170,6 +202,14 @@ body {
     .loading-spinner-orbit--reverse,
     .loading-spinner-dot {
       animation: none;
+    }
+
+    .post-login-entrance,
+    .post-login-entrance--exit,
+    .post-login-entrance-logo,
+    .post-login-entrance-subtitle {
+      animation: none;
+      transition: none;
     }
   }
 }
@@ -249,6 +289,46 @@ body {
   }
   50% {
     opacity: 1;
+  }
+}
+
+@keyframes postLoginBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes postLoginBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes postLoginLogoSettle {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes postLoginFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

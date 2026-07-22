@@ -27,6 +27,7 @@ export function StatusBadge({ status }: { status: string }) {
     PENDING_APPROVAL: "bg-orange-500/20 text-orange-400",
     SOLD: "bg-blue-500/20 text-blue-400",
     REJECTED: "bg-red-500/20 text-red-400",
+    CANCELLED: "bg-muted text-muted-foreground",
     APPROVED: "bg-green-500/20 text-green-400",
     PENDING: "bg-orange-500/20 text-orange-400",
     ACTIVE: "bg-green-500/20 text-green-400",

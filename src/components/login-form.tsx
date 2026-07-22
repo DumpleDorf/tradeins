@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { getDashboardPath } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 import { ForgotPasswordInstructions } from "@/components/forgot-password-instructions";
+import { markPostLoginEntrance } from "@/components/post-login-entrance";
 
 type LoginFormProps = {
   title?: string;
@@ -73,6 +74,7 @@ export function LoginForm({
         ? callbackUrl
         : getDashboardPath(role);
 
+    markPostLoginEntrance();
     router.push(safeCallback);
     router.refresh();
   }

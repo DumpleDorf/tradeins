@@ -84,6 +84,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
         data: { status: status as VehicleStatus },
       });
 
+      // Releasing back to inventory clears active reservations so the car is unfrozen.
+      if (status === "AVAILABLE") {
+        await tx.reservation.updateMany({
+          where: {
+            vehicleId: id,
+            status: ReservationStatus.APPROVED,
+          },
+          data: {
+            status: ReservationStatus.CANCELLED,
+            reviewedAt: new Date(),
+            rejectionReason: comment?.trim() || "Released by Tesla staff",
+          },
+        });
+      }
+
       if (needsPartner && partnerId) {
         await tx.reservation.create({
           data: {
